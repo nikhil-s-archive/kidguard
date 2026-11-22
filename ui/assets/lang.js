@@ -22,4 +22,4 @@ const loadLang = code => L[code] ? Promise.resolve() : new Promise(res => {
   s.src = "/ui/i18n-" + code + ".js"; s.onload = s.onerror = () => res();
   document.head.appendChild(s);
 });
-document.write('<script src="/ui/i18n-' + lang + '.js"><\/script>');
+document.write('<script src="/assets/i18n-' + lang + '.js"><\/script>');
