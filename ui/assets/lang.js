@@ -19,7 +19,7 @@ let lang = (() => {
 // load a dictionary on demand; resolves when L[code] exists (also on a network error: t() then shows the keys)
 const loadLang = code => L[code] ? Promise.resolve() : new Promise(res => {
   const s = document.createElement("script");
-  s.src = "/ui/i18n-" + code + ".js"; s.onload = s.onerror = () => res();
+  s.src = "/assets/i18n-" + code + ".js"; s.onload = s.onerror = () => res();
   document.head.appendChild(s);
 });
 document.write('<script src="/assets/i18n-' + lang + '.js"><\/script>');
