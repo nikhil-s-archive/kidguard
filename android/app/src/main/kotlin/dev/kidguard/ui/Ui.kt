@@ -41,7 +41,7 @@ class Ui(val ctx: Context, pal: Palette? = null) {
 
     /** Status colors, a bit lighter on dark. */
     fun tone(hex: String): Int = when (hex) {
-        Ic.OK -> Color.parseColor(if (dark) "#30d158" else "#248a3d")
+        Ic.OK -> Color.parseColor(if (dark) "#30d158" else "#1f7a34")
         Ic.WARN -> Color.parseColor(if (dark) "#ff9f0a" else "#b25000")
         else -> accent
     }

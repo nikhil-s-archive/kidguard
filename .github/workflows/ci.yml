@@ -16,12 +16,20 @@ jobs:
       - name: Kotlin unit tests (child + parent)
         working-directory: android
         run: ./gradlew --no-daemon testKidDebugUnitTest :parent:testDebugUnitTest
-      - name: Compile home flavor + parent app (debug, no signing)
+      - name: Compile kid + home flavors + parent app (debug, no signing)
         working-directory: android
-        run: ./gradlew --no-daemon assembleHomeDebug :parent:assembleDebug
+        run: ./gradlew --no-daemon assembleKidDebug assembleHomeDebug :parent:assembleDebug
+      - name: Upload debug APKs
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidguard-debug-apks
+          path: |
+            android/app/build/outputs/apk/kid/debug/*.apk
+            android/app/build/outputs/apk/home/debug/*.apk
+            android/parent/build/outputs/apk/debug/*.apk
       - name: Page script parses
         run: |
-          files=$(grep -o 'src="/ui/[a-z0-9-]*\.js"' ui/index.html | sed 's|src="/ui/|ui/assets/|; s|"$||')
+          files=$(grep -o 'src="/assets/[a-z0-9-]*\.js"' ui/index.html | sed 's|src="/assets/|ui/assets/|; s|"$||')
           for f in $files; do node --check "$f"; done
           cat $files > /tmp/page.js && node --check /tmp/page.js
       - name: "Page script lint (esbuild: assign-to-constant, duplicate keys, ...)"

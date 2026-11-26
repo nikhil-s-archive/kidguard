@@ -119,7 +119,7 @@ function serve(name) {
     req.on("end", () => {
       const text = Buffer.concat(body).toString();
       if (p === "/" || p === "/index.html") return send(200, "text/html; charset=utf-8", fs.readFileSync(path.join(UI, "index.html")));
-      let m = /^\/ui\/([a-z0-9][a-z0-9-]*)\.(js|css)$/.exec(p);
+      let m = /^\/(?:ui|assets)\/([a-z0-9][a-z0-9-]*)\.(js|css)$/.exec(p);
       if (m) { const f = path.join(UI, "assets", m[1] + "." + m[2]); return fs.existsSync(f) ? send(200, TYPES["." + m[2]], fs.readFileSync(f)) : send(404, "text/plain", "not found"); }
       // test switch (shoot.mjs --faults): ok | down (connection dropped) | e500 (phone error) | slow (15 s, then ok)
       if (p === "/__fault") { FAULT = u.searchParams.get("m") || "ok"; return send(200, "text/plain", FAULT); }

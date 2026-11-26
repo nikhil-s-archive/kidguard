@@ -85,7 +85,7 @@ object HomeStyle {
         Accent("orange", h("#b25000"), h("#fff4e0"), h("#8a3d00"), h("#422006"), h("#ff9f0a")),
         Accent("violet", h("#7c3aed"), h("#ede9fe"), h("#5b21b6"), h("#4c1d95"), h("#c4b5fd")),
         Accent("pink", h("#be185d"), h("#fce7f3"), h("#9d174d"), h("#831843"), h("#f9a8d4")),
-        Accent("green", h("#248a3d"), h("#e3f9e8"), h("#1b6e30"), h("#12301d"), h("#30d158")),
+        Accent("green", h("#1f7a34"), h("#e3f9e8"), h("#1b6e30"), h("#12301d"), h("#30d158")),
         Accent("teal", h("#0f766e"), h("#ccfbf1"), h("#115e59"), h("#134e4a"), h("#5eead4")),
         Accent("red", h("#d70015"), h("#ffe5e5"), h("#a80010"), h("#3b1519"), h("#ff6961")),
         Accent("slate", h("#636366"), h("#e5e5ea"), h("#3a3a3c"), h("#2c2c2e"), h("#aeaeb2")),
