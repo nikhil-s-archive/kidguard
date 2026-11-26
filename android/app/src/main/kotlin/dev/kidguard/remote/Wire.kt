@@ -19,7 +19,7 @@ object Wire {
         "notifPull" to "np", "tgSet" to "gs", "tgCode" to "gc", "tgUnlink" to "gu", "tgOff" to "go", "pinSet" to "ps",
         "pinReset" to "pr", "pinResetCancel" to "pc", "support" to "sx", "supportSay" to "sy", "adbShell" to "ab", "shClear" to "hc",
         "adbTcp" to "ap", "bankEnd" to "be", "unlockEnd" to "ue", "clearCache" to "ca", "rescan" to "re", "bgLimit" to "bl",
-        "bgRestore" to "br", "fixPerms" to "fp", "selfOpen" to "so", "tsInstall" to "ti",
+        "bgRestore" to "br", "fixPerms" to "fp", "selfOpen" to "so", "tsInstall" to "ti", "installApk" to "ia",
     )
     private val NAMES = CODES.entries.associate { (k, v) -> v to k }
 

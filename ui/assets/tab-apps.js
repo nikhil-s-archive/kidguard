@@ -27,12 +27,19 @@ function appsTab(b) {
   if ($("#apUse")) $("#apUse").onclick = () => { lgDay = dkey(Date.now()); lgEv = "u:"; lgNEv = LG_PAGE; goTab("log"); };
 }
 function appsList(b) {
-  const mode = p => edit.blocked.includes(p) ? "block" : edit.allow.includes(p) ? "allow" : edit.appMin[p] ? "limit" : "normal";
+  const hid = () => edit.hidden || (edit.hidden = []);
+  const mode = p => hid().includes(p) ? "hide" : edit.blocked.includes(p) ? "block" : edit.allow.includes(p) ? "allow" : edit.appMin[p] ? "limit" : "normal";
   const isNew = x => x.new && !edit.approved.includes(x.pkg);
-  const FILT = [["all", t("f.all")], ["new", ic("sparkles") + " " + t("f.new")], ["blocked", ic("octagon-x") + " " + t("f.blocked")], ["limited", ic("timer") + " " + t("f.limited")]];
-  const pass = x => { const m = mode(x.pkg); return sel.f === "all" || (sel.f === "new" && isNew(x)) || (sel.f === "blocked" && (m === "block" || x.suspended)) || (sel.f === "limited" && m === "limit"); };
+  const canHide = canFeat("debloat");
+  const FILT = [["all", t("f.all")], ["new", ic("sparkles") + " " + t("f.new")], ["blocked", ic("octagon-x") + " " + t("f.blocked")], ["limited", ic("timer") + " " + t("f.limited")]].concat(canHide ? [["hidden", ic("eye-off") + " " + t("f.hidden")]] : []);
+  const pass = x => { const m = mode(x.pkg); return sel.f === "all" || (sel.f === "new" && isNew(x)) || (sel.f === "blocked" && (m === "block" || x.suspended)) || (sel.f === "limited" && m === "limit") || (sel.f === "hidden" && (m === "hide" || x.hidden)); };
+  const allApps = () => {
+    const base = st.apps || [], seen = new Set(base.map(x => x.pkg));
+    const extra = (st.preinstalled || []).filter(x => !seen.has(x.pkg) && (x.hidden || hid().includes(x.pkg))).map(x => ({ pkg: x.pkg, label: x.label || x.pkg, ms: 0, hidden: true }));
+    return base.concat(extra);
+  };
   // "trinh duyet" finds "Trình duyệt"; the package name matches as typed
-  const visible = () => { const raw = sel.q.trim().toLowerCase(), q = qsFold(raw); return st.apps.filter(x => !x.protected && pass(x) && (!raw || (q && qsFold(x.label).includes(q)) || x.pkg.toLowerCase().includes(raw))); };
+  const visible = () => { const raw = sel.q.trim().toLowerCase(), q = qsFold(raw); return allApps().filter(x => !x.protected && pass(x) && (!raw || (q && qsFold(x.label).includes(q)) || x.pkg.toLowerCase().includes(raw))); };
   b.innerHTML = `<div><div class="row"><b class="sp">${t("apps.h", st.apps.length)}</b><button id="selTog" class="sm${sel.on ? " pri" : ""}">${sel.on ? ic("x") + " " + t("sel.exit") : ic("square-check") + " " + t("sel.on")}</button></div>
     <input id="f-q" type="search" value="${esc(sel.q)}" placeholder="${esc(t("apps.search"))}" aria-label="${esc(t("apps.search"))}" style="width:100%;margin:10px 0 6px">
     ${chipRow(FILT.map(([v, n]) => chipBtn(`data-f="${v}"`, n, sel.f === v)), { scroll: 1, id: "flt" })}
@@ -44,12 +51,12 @@ function appsList(b) {
     // one slim header (count + select all/none) and one sideways-scrolling row of actions: ~2 rows on a phone, not 5
     const all = visible().length > 0 && visible().every(x => sel.set.has(x.pkg));
     bar.innerHTML = `<div class="row nw"><b class="sp">${ic("check")} ${t("sel.n", n)}</b><button class="sm" id="selAllNone">${all ? ic("square") + " " + t("sel.none") : ic("square-check") + " " + t("sel.all")}</button></div>
-      <div class="chips scroll" style="margin-top:6px"><button ${dis} data-a="block" class="bad">${ic("octagon-x")} ${t("block")}</button><button ${dis} data-a="unblock">${ic("circle-check")} ${t("unblock")}</button><button ${dis} data-a="allow">${ic("star")} ${t("allow")}</button><button ${dis} data-a="lim">${ic("timer")} ${t("limitX")}</button><button ${dis} data-a="unlim">${ic("trash-2")} ${t("unlimit")}</button><button ${dis} data-a="approve">${ic("thumbs-up")} ${t("approve")}</button></div>
+      <div class="chips scroll" style="margin-top:6px"><button ${dis} data-a="block" class="bad">${ic("octagon-x")} ${t("block")}</button><button ${dis} data-a="unblock">${ic("circle-check")} ${t("unblock")}</button><button ${dis} data-a="allow">${ic("star")} ${t("allow")}</button><button ${dis} data-a="lim">${ic("timer")} ${t("limitX")}</button><button ${dis} data-a="unlim">${ic("trash-2")} ${t("unlimit")}</button><button ${dis} data-a="approve">${ic("thumbs-up")} ${t("approve")}</button>${canHide ? `<button ${dis} data-a="hide">${ic("eye-off")} ${t("app.hide")}</button><button ${dis} data-a="unhide">${ic("eye")} ${t("unhide")}</button>` : ""}</div>
       ${sel.limOpen ? `<div class="row" style="margin-top:6px"><input id="f-lim" type="number" min="1" max="1440" step="5" inputmode="numeric" placeholder="${esc(t("minPerDay"))}" aria-label="${esc(t("minPerDay"))}" style="width:9em"><button id="limOk" class="pri" ${dis}>${ic("circle-check")} ${t("apply")}</button></div>` : ""}`;
-    const clr = p => { edit.blocked = edit.blocked.filter(x => x !== p); edit.allow = edit.allow.filter(x => x !== p); delete edit.appMin[p]; };
+    const clr = p => { edit.blocked = edit.blocked.filter(x => x !== p); edit.allow = edit.allow.filter(x => x !== p); edit.hidden = hid().filter(x => x !== p); delete edit.appMin[p]; };
     // k: "bulk.<k>" asks "Block 3 apps?", "bulk.<k>Done" says "Blocked 3 apps"; m: minutes for "lim"
     const apply = async (k, fn, m) => {
-      const pk = [...sel.set].filter(p => { const a = st.apps.find(x => x.pkg === p); return a && !a.protected; });
+      const pk = [...sel.set].filter(p => { const a = allApps().find(x => x.pkg === p); return a && !a.protected; });
       if (!pk.length) return toast("warn|" + t("sel.noneYet"));
       if (!(await ask(t("bulk." + k, pk.length, m)))) return;
       pk.forEach(fn); changed(); toast("ok|" + t("bulk." + k + "Done", pk.length, m)); sel.set.clear(); sel.limOpen = false; draw(); setTimeout(refresh, 1200);   // one PUT (debounced), then refresh
@@ -61,6 +68,8 @@ function appsList(b) {
       else if (a === "allow") apply("allow", p => { clr(p); edit.allow.push(p); });
       else if (a === "unlim") apply("unlim", p => { delete edit.appMin[p]; });
       else if (a === "approve") apply("approve", p => { if (!edit.approved.includes(p)) edit.approved.push(p); });
+      else if (a === "hide") apply("hide", p => { clr(p); edit.hidden.push(p); });
+      else if (a === "unhide") apply("unhide", p => { edit.hidden = hid().filter(v => v !== p); });
       else if (a === "lim") { sel.limOpen = !sel.limOpen; drawBar(); const i = $("#f-lim"); if (i) i.focus(); }
     });
     $("#selAllNone").onclick = () => { if (all) sel.set.clear(); else visible().forEach(x => sel.set.add(x.pkg)); draw(); };
@@ -87,6 +96,7 @@ function appsList(b) {
         ${m === "limit" && ![15, 30, 45, 60, 90, 120].includes(edit.appMin[x.pkg]) ? `<option value="${edit.appMin[x.pkg]}" selected>${t("perDay", edit.appMin[x.pkg])}</option>` : ""}
         <option value="block" ${m === "block" ? "selected" : ""}>${t("block")}</option>
         <option value="allow" ${m === "allow" ? "selected" : ""}>${t("allow")}</option>
+        ${canHide || m === "hide" ? `<option value="hide" ${m === "hide" ? "selected" : ""}>${t("app.hide")}</option>` : ""}
       </select></div>`;
   };
   const bindRows = box => {
@@ -94,8 +104,8 @@ function appsList(b) {
     box.querySelectorAll("[data-c]").forEach(c => c.onchange = () => { c.checked ? sel.set.add(c.dataset.c) : sel.set.delete(c.dataset.c); drawBar(); });
     box.querySelectorAll("select").forEach(s => s.onchange = () => {
       const p = s.dataset.p, v = s.value;
-      edit.blocked = edit.blocked.filter(x => x !== p); edit.allow = edit.allow.filter(x => x !== p); delete edit.appMin[p];
-      if (v === "block") edit.blocked.push(p); else if (v === "allow") edit.allow.push(p); else if (v !== "normal") edit.appMin[p] = +v;
+      edit.blocked = edit.blocked.filter(x => x !== p); edit.allow = edit.allow.filter(x => x !== p); edit.hidden = hid().filter(x => x !== p); delete edit.appMin[p];
+      if (v === "block") edit.blocked.push(p); else if (v === "allow") edit.allow.push(p); else if (v === "hide") edit.hidden.push(p); else if (v !== "normal") edit.appMin[p] = +v;
       changed();
     });
   };

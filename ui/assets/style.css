@@ -568,3 +568,13 @@ input[type=range]:disabled{opacity:.45;cursor:default}
 
 a.btn.rb{padding:0;border-radius:22px}.glink{display:inline-flex;align-items:center;gap:5px;font-weight:600;color:var(--pri);text-decoration:none;white-space:nowrap}.glink .si:last-child{width:14px;height:14px;opacity:.7}.glp{margin:0 0 10px}.ownr{margin-top:12px;border:1px solid var(--line);border-radius:12px;padding:0 12px}.ownr summary{cursor:pointer;color:var(--pri);font-weight:600;min-height:44px;display:flex;align-items:center;gap:8px;list-style:none}.ownr summary::-webkit-details-marker{display:none}.ownr[open] summary .si:last-child{transform:rotate(180deg)}.ownr p{margin:0 0 6px}.ownr input{width:100%;margin:0 0 12px}
 .ovsel{gap:8px}.ovsel button{flex:none}.ovk .ovck{width:22px;height:22px;flex:none;margin:0;accent-color:var(--pri,#2563eb)}.ovk .card.sel{outline:2px solid var(--pri,#2563eb);outline-offset:-2px}
+/* minimal Home grid: 4 primary cards (Location, Live notifications, Screen mirror, Camera + Audio) */
+.hm-grid{display:grid;grid-template-columns:1fr;gap:10px}
+@media(min-width:600px){.hm-grid{grid-template-columns:1fr 1fr;gap:12px}}
+.hm-card{display:flex;align-items:center;gap:14px;width:100%;min-height:76px;padding:14px 16px;background:var(--card);border:1px solid var(--stroke);border-radius:16px;box-shadow:var(--shadow);text-align:left;justify-content:flex-start;font-weight:400}
+.hm-card .hm-ic{width:44px;height:44px;border-radius:12px;background:var(--tint);color:var(--accent);display:grid;place-items:center;flex:none}
+.hm-card .hm-ic .si{width:22px;height:22px}
+.hm-card .hm-tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.hm-card .hm-tx b{font-size:16px;font-weight:650;color:var(--text)}
+.hm-card .hm-tx span{font-size:13px;color:var(--sub);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hm-card .hm-ch{color:var(--sub);flex:none}

@@ -168,7 +168,6 @@ function updCard() {
   const busy = u.status === "downloading" || u.status === "installing" || u.status === "checking";
   return secP("s-upd", "refresh-cw", t("upd.h"), t("sd.upd"), has ? [t("upd.has", v), "warn"] : [esc(st.version || "?"), "ok"], `
     <p style="overflow-wrap:anywhere">${t("upd.kid", "<b>" + esc(st.version || "?") + "</b>")} · ${line}${u.checkedAt ? ` <span class="mute">· ${t("upd.checked", ago(u.checkedAt))}</span>` : ""}</p>
-    <label class="row"><input type="checkbox" id="f-au" ${edit && edit.autoUpdate ? "checked" : ""}><span class="sp">${t("upd.auto")}</span></label>
     <div class="row" style="margin-top:8px"><button id="updNow" ${busy ? "disabled" : ""}>${ic("refresh-cw")} ${t("upd.now")}</button></div>${uiPackHtml()}`, has || busy || u.status === "failed");
 }
 // paired parent devices (state.devices, phone >= 0.9.8). Our own row: "self" on LAN; on the relay page, sha256(token)[:8].
@@ -438,7 +437,6 @@ function setTab(b) {
   $("#unpair").onclick = async () => { await cmd({ type: "unpairAll" }, undefined, [t("ask.unpairAll"), t("askOk.unpairAll"), true, t("unp.word")]); };
   $("#forget").onclick = forgetKid;
   if ($("#f-tsk")) $("#f-tsk").onchange = e => { if (!edit) return; edit.tsKeep = e.target.checked; changed(); };
-  if ($("#f-au")) $("#f-au").onchange = e => { if (!edit) return; edit.autoUpdate = e.target.checked; changed(); };
   if ($("#devOff")) $("#devOff").onclick = () => devOff(false);
   if ($("#devOn")) $("#devOn").onclick = () => devOff(true);
   if ($("#shRun")) { $("#shRun").onclick = shRun; $("#f-sh").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); shRun(); } }; $("#f-sh").oninput = e => { shText = e.target.value; }; }

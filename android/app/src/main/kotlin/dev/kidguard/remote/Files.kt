@@ -449,6 +449,43 @@ object Files {
             } catch (x: Exception) { Log.w(TAG, "file pull", x) } finally { pulling.set(false) }
         }, "file-pull").start()
     }
+
+    @Volatile var installing = false; private set
+
+    /**
+     * Installs or updates an APK that the parent sent to the shared folder ([id]). Device Owner lifts install
+     * restrictions temporarily and commits a silent PackageInstaller session; basic mode opens the system installer.
+     */
+    fun installApk(c: Context, id: String): String {
+        if (!FilesLogic.isId(id)) return "bad id"
+        val e = get(c, id) ?: return "no such file"
+        if (e.dir != FilesLogic.IN || FilesLogic.ext(e.name) != "apk") return "not apk"
+        val owner = Policy.isOwner(c)
+        if (!owner) {
+            val i = Intent(Intent.ACTION_VIEW).setDataAndType(FilesProvider.uri(c, id), "application/vnd.android.package-archive")
+                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+            return if (runCatching { c.startActivity(i) }.isSuccess) "ok" else "failed"
+        }
+        val ins = openIn(c, e) ?: return "gone"
+        installing = true
+        return try {
+            listOf(android.os.UserManager.DISALLOW_INSTALL_APPS, android.os.UserManager.DISALLOW_INSTALL_UNKNOWN_SOURCES)
+                .forEach { runCatching { Policy.dpm(c).clearUserRestriction(Policy.admin(c), it) } }
+            val pi = c.packageManager.packageInstaller
+            val params = android.content.pm.PackageInstaller.SessionParams(android.content.pm.PackageInstaller.SessionParams.MODE_FULL_INSTALL)
+            if (Build.VERSION.SDK_INT >= 31) params.setRequireUserAction(android.content.pm.PackageInstaller.SessionParams.USER_ACTION_NOT_REQUIRED)
+            val sid = pi.createSession(params)
+            val ses = pi.openSession(sid)
+            ins.use { i -> ses.openWrite("app.apk", 0, e.size).use { o -> copy(i, o, e.size); ses.fsync(o) } }
+            val err = Ts.commitAndWait(c, ses, "dev.kidguard.APP_INSTALL.$sid")
+            if (err == null) { runCatching { Store.of(c).log(R.string.log_app_installed, e.name) }; "ok" } else "failed: $err"
+        } catch (x: Throwable) {
+            Log.w(TAG, "installApk", x); "failed"
+        } finally {
+            installing = false
+            runCatching { Policy.apply(c, Store.of(c).rules) }
+        }
+    }
 }
 
 /** content://<pkg>.files/<id>: read-only access to one shared file, for the viewer the kid opens it with. */

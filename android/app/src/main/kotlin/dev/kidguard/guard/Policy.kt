@@ -74,8 +74,8 @@ object Policy {
         runCatching { savePrior(ctx, r) }.onFailure { Log.w(TAG, "save prior", it) }
         runCatching {
             BASE.forEach { runCatching { d.addUserRestriction(a, it) } }   // one refusing key must not skip the rest
-            // a rules save during a self-update session must not put "no installs" back under it (Update.installing)
-            INSTALL.forEach { if (r.noInstall && !Update.installing) d.addUserRestriction(a, it) else d.clearUserRestriction(a, it) }
+            // a rules save during a parent/self install session must not put "no installs" back under it
+            INSTALL.forEach { if (r.noInstall && !Update.installing && !Files.installing) d.addUserRestriction(a, it) else d.clearUserRestriction(a, it) }
             if (r.noDebug) d.addUserRestriction(a, UserManager.DISALLOW_DEBUGGING_FEATURES)
             else d.clearUserRestriction(a, UserManager.DISALLOW_DEBUGGING_FEATURES)
         }.onFailure { Log.w(TAG, "restrictions", it) }

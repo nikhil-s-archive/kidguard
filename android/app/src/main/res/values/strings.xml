@@ -156,6 +156,7 @@
     <string name="log_cmd_by">Command from %3$s: %1$s → %2$s</string>
     <string name="log_cleared">Parent cleared data: %1$s</string>
     <string name="log_cleared_cache">Parent cleared every app\'s cache</string>
+    <string name="log_app_installed">Parent installed/updated: %1$s</string>
     <string name="log_kid_clean">Child cleaned app caches, %d MB freed</string>
     <string name="log_bg_limit">Parent limited background running of %d apps</string>
     <string name="log_bg_restore">Background running of %d apps put back</string>

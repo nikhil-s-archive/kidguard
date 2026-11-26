@@ -189,6 +189,7 @@ v0.4:
   (state `ts.noExpiry` true), then drops the token (also after 5 failed tries, or a 401/403). With a plain auth key
   `noExpiry` stays false and the page shows the manual "Disable key expiry" step (Tailscale signs a node out after 180 days).
 - `tsInstall` (2026-11-16, repeatable, SHORT, not PIN-gated, `Ts.openInstall`): open Tailscale on the child's screen: the app if installed, else its Play Store page (`market://details?id=com.tailscale.ipn`, https if no Store). Needs the background-start right (Device Owner, or "display over other apps" in basic mode); result `ok | no bg start | failed | unsupported`. A person at the child phone still taps Install and signs in (basic mode cannot do that for them). State `ts.installed` / `ts.up` / `ts.ip` are read live from the phone (package + a 100.64/10 address on a `tun*` interface), also when KidGuard never set Tailscale up; `ts.up` false with `installed` = signed out or switched off (not told apart).
+- `installApk` (`ia`, 2026-11-26, `ONCE`, `SHORT`, `Files.installApk`): `{ type: "installApk", file: "<16-hex-id>" }`. Installs or updates an `.apk` previously sent by the parent to the shared folder (`dir = in`). Device Owner temporarily lifts `DISALLOW_INSTALL_APPS` / `DISALLOW_INSTALL_UNKNOWN_SOURCES`, commits a silent `PackageInstaller` session, restores `Policy.apply`, and logs `log_app_installed`; basic mode opens the system installer prompt. Result `ok | bad id | no such file | not apk | gone | failed[: <reason>]`.
 - `tailscaleOff`: undo all of it and uninstall Tailscale (also done by `release`). In the worker whitelist.
 v0.9.6:
 - `devOff`: turns off wireless debugging (`adb_wifi_enabled`, API 30+), USB debugging (`ADB_ENABLED`) and Developer
@@ -403,6 +404,7 @@ relay (`relay`, `tailscale`) have no code. A new relay command = a new row here,
 | `fixPerms` | `fp` |
 | `selfOpen` | `so` |
 | `tsInstall` | `ti` |
+| `installApk` | `ia` |
 
 ### Relay (worker), token header `X-KG-Token`, id = 16 hex
 The shared relay has two names for the same worker (0.9.62): `https://kg-relay.99-hoangtran.workers.dev` (stored in phones

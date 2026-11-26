@@ -47,7 +47,7 @@ const PAIR_MISS_MAX = 20, PAIR_MISS_WIN = 10 * 60e3;
 const json = (o, status = 200) => new Response(JSON.stringify(o), {
   status, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff" },
 });
-const ONCE = ["rb", "rl", "ua", "up", "cl", "ud", "ts", "fd", "gs", "go", "ps", "pr", "pc", "ab", "ap", "sx", "so", "cc", "cf", "cd", "sd"];   // destructive: handed out until acked, but only within ONCE_WINDOW of the first hand-out
+const ONCE = ["rb", "rl", "ua", "up", "cl", "ud", "ts", "fd", "gs", "go", "ps", "pr", "pc", "ab", "ap", "sx", "so", "cc", "cf", "cd", "sd", "ia"];   // destructive: handed out until acked, but only within ONCE_WINDOW of the first hand-out
 const STATE_FLUSH = 10 * 60e3, SEEN_EVERY = 10 * 60e3, PAR_SEEN_EVERY = 3600e3;   // storage rows: see stateCore / sync
 const ONCE_WINDOW = 3600e3;   // 1 h (owner 2026-11-15: a phone that is off for 10 min must not lose a release / reboot)
 // push wake (kid app's FCM token, sync body `fcm`): quiet this long => high-priority data push {kind:"wake"}. The phone's
@@ -61,7 +61,7 @@ const GC_MS = 30 * 86400e3;   // a phone not seen for 30 days: everything of thi
 //  window for a parent standing next to the phone; adbShell = a shell command running a day later is surprising; unlockEnd = ends a
 //  temporary pause "now"; fixPerms = opens Settings screens on the kid's phone, confusing if the kid is using it hours later.
 // Everything else (setting devOn devOff bgLimit bgRestore rescan clearCache support ...) is harmless late: normal 24 h.
-const SHORT = ["fu", "sh", "uu", "np", "sp", "cp", "cc", "cf", "cd", "sl", "su", "sd", "sn", "lk", "lc", "ms", "rg", "wk", "rs", "ls", "rb", "cl", "ps", "pr", "pc", "op", "ab", "ue", "fp", "so", "ti"];
+const SHORT = ["fu", "sh", "uu", "np", "sp", "cp", "cc", "cf", "cd", "sl", "su", "sd", "sn", "lk", "lc", "ms", "rg", "wk", "rs", "ls", "rb", "cl", "ps", "pr", "pc", "op", "ab", "ue", "fp", "so", "ti", "ia"];
 let SHORT_TTL = 10 * 60e3;   // env.SHORT_TTL_MS overrides (tests only)
 // secrets a parent typed into a command (PIN, new PIN, Authenticator secret, bot token): handed out once, then not kept in the queue copy
 const SECRET_KEYS = ["pin", "new", "secret", "token"];
@@ -74,7 +74,7 @@ const live = (c, now) => now - (c.at || 0) < (SHORT.includes(c.type) ? SHORT_TTL
 /** Receipts for commands dropped unrun (TTL / ONCE window): newest last, at most EXPIRED_N, shown to the parent as state `expired`. */
 const EXPIRED_N = 10;
 const expiredOf = (list, dropped, now) => [...(list || []), ...dropped.map(c => ({ id: c.id, type: c.type, res: "expired", at: now }))].slice(-EXPIRED_N);
-const CMDS = ["ai", "rd", "uu", "sp", "cp", "cc", "cf", "cd", "sl", "su", "sd", "sn", "lk", "lc", "ms", "rg", "op", "ua", "up", "rl", "an", "rb", "to", "sa", "cl", "ud", "ts", "wk", "rs", "ls", "d0", "d1", "st", "fu", "fd", "sh", "np", "gs", "gc", "gu", "go", "ps", "pr", "pc", "sx", "sy", "ab", "hc", "ap", "be", "ue", "ca", "re", "bl", "br", "fp", "so", "ti"];
+const CMDS = ["ai", "rd", "uu", "sp", "cp", "cc", "cf", "cd", "sl", "su", "sd", "sn", "lk", "lc", "ms", "rg", "op", "ua", "up", "rl", "an", "rb", "to", "sa", "cl", "ud", "ts", "wk", "rs", "ls", "d0", "d1", "st", "fu", "fd", "sh", "np", "gs", "gc", "gu", "go", "ps", "pr", "pc", "sx", "sy", "ab", "hc", "ap", "be", "ue", "ca", "re", "bl", "br", "fp", "so", "ti", "ia"];
 // idempotent commands a newer copy may replace when the queue is full: type -> target field that must match too (null = the type alone)
 const REPLACE = { lk: null, lc: null, rg: null, wk: null, rs: null, ls: null, d1: null, d0: null, st: "key", ca: null, re: null, fp: null, ti: null, op: null, ue: null, be: null, np: null, sp: null, cp: null, sl: null, cc: null, fu: "file" };
 // AI token (docs/protocol.md "AI token"): the phone sends sha256 of it in every sync (`ai`); a request with it gets role "ai".

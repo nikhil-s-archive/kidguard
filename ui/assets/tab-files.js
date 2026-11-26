@@ -238,7 +238,7 @@ function fxDraw() {
         : `<button class="pri" data-fx="get" data-id="${f.id}">${ic(j && j.state === "done" ? "check" : j && j.state === "err" ? "refresh-cw" : "download")} ${t(j && j.state === "done" ? "fx.got" : j && j.state === "err" ? "fx.retry" : "fx.get")}</button>`) +
       xb("del", f.id, "trash-2", t("fx.del"), "bad"), f.id);
   }).join("") : `<p class="mute">${t("fx.none")} ${t("fx.fromKidP")}</p>`;
-  I.innerHTML = inn.length ? inn.map((f, i) => dh(f, i, inn) + row(f.name, meta(f), "", "", xb("del", f.id, "trash-2", t("fx.del"), "bad"), f.id)).join("") : `<p class="mute">${t("fx.none")}</p>`;
+  I.innerHTML = inn.length ? inn.map((f, i) => dh(f, i, inn) + row(f.name, meta(f), "", "", (/\.apk$/i.test(f.name) ? xb("inst", f.id, "package", t("fx.inst"), "pri") : "") + xb("del", f.id, "trash-2", t("fx.del"), "bad"), f.id)).join("") : `<p class="mute">${t("fx.none")}</p>`;
 }
 function filesTab(b) {
   const relay = fxRelay(), max = relay ? FX.relay : FX.lan;
@@ -269,7 +269,7 @@ function filesTab(b) {
     ({ cancel: () => job && fxCancel(job), dismiss: () => { fx.jobs = fx.jobs.filter(j => j !== job); fxPaint(); },
        retry: () => { if (job) { job.state = "queue"; job.pct = 0; job.fid = null; fxPaint(); fxPump(); } },
        resend: () => job && fxResend(job),
-       get: () => f && fxGet(f), del: () => f && fxDel(f) })[el.dataset.fx]();
+       get: () => f && fxGet(f), del: () => f && fxDel(f), inst: async () => { if (f && await ask(t("fx.instAsk", f.name), t("fx.inst"))) await cmd({ type: "installApk", file: f.id }, t("fx.instSent"), false); } })[el.dataset.fx]();
   };
   fxDraw(); fxLoad();
 }

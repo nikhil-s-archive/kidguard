@@ -150,6 +150,7 @@
     <string name="log_cmd_by">Lệnh của %3$s: %1$s → %2$s</string>
     <string name="log_cleared">Bố mẹ xoá dữ liệu: %1$s</string>
     <string name="log_cleared_cache">Bố mẹ xoá cache mọi app</string>
+    <string name="log_app_installed">Bố mẹ đã cài/cập nhật: %1$s</string>
     <string name="log_kid_clean">Con dọn cache app, trống thêm %d MB</string>
     <string name="log_bg_limit">Bố mẹ hạn chế chạy nền %d app</string>
     <string name="log_bg_restore">Đã trả lại chạy nền cho %d app</string>

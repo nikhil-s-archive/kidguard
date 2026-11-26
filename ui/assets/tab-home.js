@@ -25,71 +25,27 @@ function newAppsCard(r) {
     ${L.length > 3 ? `<button type="button" class="lfoot" id="naMore">${t("na.more", L.length - 3)} ${ic("chevron-right")}</button>` : ""}</div>`;
 }
 function homeTab(b) {
-  const r = edit || st.rules, today = st.day, limit = edit ? todayLimit(r, today) : (st.limitMin ?? r.dailyMin);
-  const reqs = (st.requests || []).filter(q => !answered.has(q.id));
-  const used = st.usedMs, left = st.leftMs, pct = limit ? Math.min(100, used / (limit * 600)) : 0;
-  const pausedLeft = r.pausedUntil - Date.now();
-  const bonusMin = r.bonus && r.bonus.day === today ? +r.bonus.min || 0 : 0;
-  const blockedNow = st.apps.filter(x => x.suspended);
-  // the solid button follows the situation: can use the phone -> "Cấm dùng…"; paused / out of time -> "Cho thêm giờ…"
-  const nw = nowOf(r), lockWhy = nw.why && nw.why !== "daily", lostNow = nw.why === "lost" || r.lostOn;
-  const pauseB = cls => `<button type="button" id="pauseGo" class="${pausedLeft > 0 ? "pausing " + cls.replace("pri ", "") : cls}">${pausedLeft > 0 ? `${ic("pause")} <span><b>${t("pk.active", whenTxt(r.pausedUntil))}</b> · ${t("pk.tapEdit")}</span>` : `${ic("pause")} ${t("pk.pauseBtn")}`}</button>`;
-  const out = pausedLeft > 0 || (limit && left <= 0) || lockWhy;
-  // more time always works (grant): daily bonus when the limit is the reason, else a timed pass
-  const bonusB = cls => lostNow ? "" : `<button type="button" id="bonusGo" class="${cls}">${ic("plus")} ${t("pk.bonusBtn")}${bonusMin ? ` <span class="tag ok">+${t("fmt.m", bonusMin)}</span>` : ""}</button>`;
-  const top = st.apps.filter(x => x.ms > 60000).slice(0, 3), mx = Math.max(1, ...top.map(x => x.ms));
-  const ev = (st.events || []).slice(-3).reverse();
-  b.innerHTML = `<div class="g2 w"><div>
-  ${reqs.map(q => reqCard(q, r)).join("")}
-  ${newAppsCard(r)}
-  <section class="hero" aria-label="${esc(t("today"))}">
-    <div class="lab">${lockWhy ? nowText(nw) : limit ? t(left > 0 ? "hero.left" : "hero.out") : t("hero.used")}</div>
-    ${lockWhy ? (nw.until ? `<div class="big">${fmt(nw.until - Date.now())}</div>` : "") : `<div class="big">${limit ? fmt(Math.max(0, left)) : fmt(used)}</div>`}
-    <div class="meta"><span>${lockWhy && limit ? t("hero.leftLine", fmt(Math.max(0, left)), fmt(used), fmt(limit * 60000)) : limit ? t("hero.usedOf", fmt(used), fmt(limit * 60000)) + (bonusMin ? " " + t("home.incl", bonusMin) : "") : t("home.noLim")}</span>${blockedNow.length ? `<button type="button" class="chip t-bad" id="blkGo">${ic("ban")} ${t("lockedN", blockedNow.length)} ›</button>` : ""}${nw.why === "pass" || nw.why === "code" ? `<button type="button" class="chip" id="passEnd">${ic("square")} ${t("pass.end")}</button>` : ""}</div>
-    ${limit && !lockWhy ? `<div class="bar"><i style="width:${pct}%"></i></div>` : ""}
-    ${out ? bonusB("pri hb") + pauseB(limit ? "hb2" : "pri hb") : pauseB("pri hb") + bonusB("hb2")}
-    ${limit || lockWhy ? "" : `<p class="mute" style="margin:10px 0 0">${t("home.noLimHint")}</p>`}
-  </section>
-  <div class="quick" role="group" aria-label="${esc(t("now"))}">
-    <button type="button" id="lock" class="tile act"></button><button type="button" id="ring" class="tile act"></button><button type="button" id="loc" class="tile act"></button>
-    <button type="button" id="msgGo" class="tile" aria-haspopup="dialog"><b>${ic("message-square")}</b><span>${t("msg.tile")}${chatUnread() ? ` <em class="cn">${chatUnread()}</em>` : ""}</span></button>
-    <button type="button" id="moreAct" class="tile" aria-haspopup="dialog"><b>${ic("ellipsis")}</b><span>${t("nav.more")}</span></button>
+  const loc = st.location;
+  const locSub = loc && loc.t ? ago(loc.t) : t("none");
+  const notifs = Array.isArray(st.notifs) ? st.notifs : [];
+  const notifSub = notifs.length ? (notifs[0].title || notifs[0].app || t("hm.notifN", notifs.length)) : t("none");
+  const scrSub = st.screenOn ? t("pc.on") : t("pc.off");
+  const card = (id, icon, title, sub, dis = false) => `<button type="button" id="${id}" class="hm-card"${dis ? " disabled" : ""}>
+    <span class="hm-ic">${ic(icon)}</span>
+    <span class="hm-tx"><b>${esc(title)}</b><span>${esc(sub)}</span></span>
+    <span class="hm-ch">${ic("chevron-right")}</span>
+  </button>`;
+  b.innerHTML = `<div class="hm-grid" role="group" aria-label="${esc(t("tab.home"))}">
+    ${card("hmLoc", "map-pin", t("tab.where"), locSub)}
+    ${card("hmNotif", "bell", t("seen.nh"), notifSub, !navOk("seen"))}
+    ${card("hmScr", "smartphone", t("more.scr"), scrSub, !navOk("screen"))}
+    ${card("hmCam", "video", t("hm.camAudio"), t("cam.more"), viewDay)}
   </div>
-  <div id="strip"></div>
-  ${awayTip()}
-  </div><div>
-  <section class="list mt16" id="phoneCard" aria-label="${esc(t("pc.title"))}">${phoneCard(onlineNow())}</section>
-  <div class="list mt16"><div class="lhead"><h2>${ic("flame")} ${t("home.topToday")}</h2></div>
-    ${top.map(x => `<div class="li">${icon(x)}<span class="x"><b>${esc(x.label)}</b><span class="mbar"><i style="width:${Math.round(x.ms / mx * 100)}%"></i></span></span><span class="v">${fmt(x.ms)}</span></div>`).join("") || `<div class="empty"><span class="e">${ic("sprout")}</span>${t("none")}</div>`}
-    <button type="button" class="lfoot" data-go="apps">${t("home.allApps")} ${ic("chevron-right")}</button></div>
-  <div class="list"><div class="lhead"><h2>${ic("bell")} ${t("home.recent")}</h2></div>
-    ${ev.map(e => `<div class="li"><span class="ib">${ic(EV_IC[e.kind] || "bell")}</span><span class="x"><b style="white-space:normal">${esc(noEmoji(e.text))}</b><span class="sub mute">${evAt(e.t)}${e.shot ? ` <button type="button" class="chip" data-shot="${esc(e.shot)}">${ic("camera")} ${t("shot.btn")}</button>` : ""}</span></span></div>`).join("") || `<div class="empty"><span class="e">${ic("inbox")}</span>${t("empty")}</div>`}
-    <button type="button" class="lfoot" data-go="log">${t("tab.log")} ${ic("chevron-right")}</button></div>
-  </div></div>`;
-  wireReq(b, today, false);
-  if ($("#awayGo")) $("#awayGo").onclick = () => { goTab("set"); subOpen("s-remote"); };
-  if ($("#awayNo")) $("#awayNo").onclick = () => { kidFlag(cur, "away", 1); render(); };
-  b.querySelectorAll("[data-go]").forEach(x => x.onclick = () => goTab(x.dataset.go));
-  if ($("#blkGo")) $("#blkGo").onclick = () => { sel.f = "blocked"; sel.q = ""; apOpen("a-apps"); };
-  if ($("#bonusGo")) $("#bonusGo").onclick = () => pickTime("bonus", bonusMin ? t("pk.bonusNow", bonusMin) : "",
-    m => { const kind = grantApply(edit, st, m); changed(); toast("ok|" + grantToast(kind, edit, m)); render(); },
-    bonusMin ? () => { edit.bonus = { day: today, min: 0 }; changed(); render(); } : null);
-  if ($("#passEnd")) $("#passEnd").onclick = async () => {
-    if (nw.why === "code") { if (await cmd({ type: "unlockEnd" }, t("pass.ended"), [t("pass.askEnd"), t("pass.end")])) render(); return; }
-    if (!(await ask(t("pass.askEnd"), t("pass.end")))) return;
-    edit.passUntil = 0; changed(); toast("ok|" + t("pass.ended")); render();
-  };
-  b.querySelectorAll("[data-naok]").forEach(x => x.onclick = () => { edit.approved.push(x.dataset.naok); changed(); toast("ok|" + t("permitted")); render(); });
-  b.querySelectorAll("[data-nano]").forEach(x => x.onclick = () => { if (!edit.blocked.includes(x.dataset.nano)) edit.blocked.push(x.dataset.nano); changed(); toast("ok|" + t("na.blocked")); render(); });
-  if ($("#naMore")) $("#naMore").onclick = () => { sel.f = "new"; sel.q = ""; apOpen("a-apps"); };
-  $("#pauseGo").onclick = () => pickTime("pause", pausedLeft > 0 ? t("pk.active", whenTxt(r.pausedUntil)) + " · " + t("pk.leftN", fmt(pausedLeft)) : "",
-    until => { edit.pausedUntil = until; changed(); toast("ok|" + t("pk.sumPause", whenTxt(until))); render(); },
-    pausedLeft > 0 ? () => { edit.pausedUntil = 0; changed(); toast("ok|" + t("pk.unpaused")); render(); } : null);
-  $("#lock").onclick = () => act("lock", () => screenOff() ? cmd({ type: "wake" }, t("wake.done"), false) : cmd({ type: "lock" }, t("lock.done"), false), screenOff() ? null : askOf("lock"));
-  $("#ring").onclick = async () => ringOn() ? ringStop() : earOn() ? toast("warn|" + t("act.noRing")) : !(await onlineNow.gate("ring")) ? 0 : act("ring", async () => { const r = await cmd({ type: "ring" }, t("ring.done"), false); if (r && r.result !== "queued") expect("ring", true, "ring"); return r; }, askOf("ring"));
-  $("#loc").onclick = () => act("loc", () => cmd({ type: "locate" }, t("locate.done"), false).then(r => { if (r) locStart(); return r; }), askOf("locate"));
-  $("#moreAct").onclick = moreSheet;
-  $("#msgGo").onclick = msgSheet;
+  <div id="strip" style="margin-top:12px"></div>`;
+  $("#hmLoc").onclick = () => goTab("where");
+  $("#hmNotif").onclick = () => { goTab("seen"); subOpen("seenNotif"); };
+  $("#hmScr").onclick = () => goTab("screen");
+  $("#hmCam").onclick = () => snapOpen(true);
   actPaint();
 }
 

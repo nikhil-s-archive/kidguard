@@ -54,8 +54,34 @@ class Relay(private val g: Guard) {
     /** For the state screen / logs: "ws" while the socket is up, else "http". */
     val transport get() = if (ws.open) "ws" else "http"
 
-    fun start() { schedule(0) }
-    fun stop() { ws.close(); slow.shutdown(); h.looper.quitSafely() }
+    private var netCb: android.net.ConnectivityManager.NetworkCallback? = null
+
+    fun start() {
+        schedule(0)
+        val cm = g.getSystemService(android.net.ConnectivityManager::class.java) ?: return
+        val cb = object : android.net.ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: android.net.Network) { onNet(true) }
+            override fun onCapabilitiesChanged(network: android.net.Network, caps: android.net.NetworkCapabilities) {
+                if (caps.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_VALIDATED)) onNet(true)
+            }
+            override fun onLost(network: android.net.Network) { onNet(false) }
+        }
+        runCatching { cm.registerDefaultNetworkCallback(cb); netCb = cb }
+    }
+    fun stop() {
+        netCb?.let { cb -> runCatching { g.getSystemService(android.net.ConnectivityManager::class.java)?.unregisterNetworkCallback(cb) } }
+        netCb = null
+        ws.close(); slow.shutdown(); h.looper.quitSafely()
+    }
+    private fun onNet(up: Boolean) {
+        h.post {
+            if (!up) { ws.close(); return@post }
+            if (fails > 0 || !ws.open) {
+                fails = 0; netFails = 0; wsRetryAt = 0L; wsFails = 0; forceSend = true
+                if (inSync) kickAgain = true else schedule(0)
+            }
+        }
+    }
     /** Sync now. Never starts a second chain: while a sync runs it only asks the running one to go again at once. */
     fun kick() { h.post {
         // after failures the backoff stays: a kick (every rules change, event, battery step) must not hammer a relay that is down / refusing

@@ -112,15 +112,8 @@ object Update {
         return JSONObject().put("latest", latest).put("status", status).put("err", err).put("checkedAt", p.getLong("at", 0)).put("pct", if (status == "downloading") pct else -1)
     }
 
-    /** From the guard tick: at most once a day, on its own thread. */
-    fun maybe(ctx: Context, r: Rules, now: Long) {
-        if (!r.autoUpdate) return
-        // downloaded and checked, waiting for the screen to go off: this runs once a minute then (Guard tick)
-        if (waitingSince > 0) { if (UpdateLogic.installNow(false, screenOn(ctx), now - waitingSince)) start(ctx, false); return }
-        if (now - prefs(ctx).getLong("at", 0) < UpdateLogic.DAY_MS) return
-        if (now - triedAt < 3_600_000) return   // offline / GitHub down: try again in an hour, not every tick
-        triedAt = now; start(ctx, false)
-    }
+    /** Automatic APK updates on the kid's phone are disabled; parent installs/updates apps explicitly. */
+    fun maybe(ctx: Context, r: Rules, now: Long) {}
 
     /** [force] = the parent asked: also install a download that is already waiting (basic: notify again). */
     fun start(ctx: Context, force: Boolean): Boolean {

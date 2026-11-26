@@ -392,8 +392,7 @@ class Guard : Service() {
             else if (now >= at) { store.recoverAt = 0; store.openPairing(); store.log(R.string.log_recover_open) }
         } }
         opt("history") { if (now - store.historyAt > 3_600_000) store.saveHistory(history(now, apps.keys, prot, apps), now) }
-        opt("update") { Update.maybe(this, r, now) }
-        opt("uiPack") { UiServe.hub(this).let { h -> if (r.autoUpdate && now - h.lastCheck > 6 * 3_600_000L) h.checkAsync(0) } }   // the page (UI pack): ETag check, a few hundred bytes when nothing changed
+        opt("uiPack") { UiServe.hub(this).let { h -> if (now - h.lastCheck > 6 * 3_600_000L) h.checkAsync(0) } }   // the page (UI pack): ETag check, a few hundred bytes when nothing changed
         opt("bankList") { BankList.maybe(this, now) }
         opt("launcher") { launcherTick(r, now) }
         opt("homeLock") { LauncherLock.tick(this, r, now) }
@@ -858,6 +857,7 @@ class Guard : Service() {
         "fixPerms" -> FixPerms.fix(this)
         "clearCache" -> Policy.clearCaches(this).also { if (it == "ok") { forgetSizes(); store.log(R.string.log_cleared_cache); kick() } }
         "update" -> if (Update.start(this, true)) "ok" else "busy"
+        "installApk" -> Files.installApk(this, c.optString("file"))
         "uiUpdate" -> if (UiServe.hub(this).checkAsync(0)) "ok" else "busy"   // the page polls /ui/pack.json for the result
         "devOff" -> devOff()
         "tsInstall" -> Ts.openInstall(this)
