@@ -17,14 +17,14 @@ import android.widget.TextView
 class Ui(val ctx: Context, pal: Palette? = null) {
     // [pal]: the kid launcher's palette (its accent and its own light / dark), so its modals and sheets match it
     val dark = pal?.dark ?: isDark(ctx)
-    val bg = pal?.bg ?: Color.parseColor(if (dark) "#0f172a" else "#f3f6fb")
-    val card = pal?.sheet ?: Color.parseColor(if (dark) "#1e293b" else "#ffffff")
-    val stroke = pal?.stroke ?: Color.parseColor(if (dark) "#334155" else "#e2e8f0")
-    val text = pal?.text ?: Color.parseColor(if (dark) "#f1f5f9" else "#0f172a")
-    val sub = pal?.sub ?: Color.parseColor(if (dark) "#94a3b8" else "#64748b")
-    val primary = pal?.solid ?: Color.parseColor(if (dark) "#3b82f6" else "#2563eb")
-    val accent = pal?.accentText ?: Color.parseColor(if (dark) "#93c5fd" else "#2563eb")
-    val tint = pal?.tint ?: Color.parseColor(if (dark) "#1e3a8a" else "#dbeafe")
+    val bg = pal?.bg ?: Color.parseColor(if (dark) "#000000" else "#f2f2f7")
+    val card = pal?.sheet ?: Color.parseColor(if (dark) "#1c1c1e" else "#ffffff")
+    val stroke = pal?.stroke ?: Color.parseColor(if (dark) "#38383a" else "#e5e5ea")
+    val text = pal?.text ?: Color.parseColor(if (dark) "#ffffff" else "#000000")
+    val sub = pal?.sub ?: Color.parseColor(if (dark) "#98989d" else "#636366")
+    val primary = pal?.solid ?: Color.parseColor(if (dark) "#0a84ff" else "#0066d6")
+    val accent = pal?.accentText ?: Color.parseColor(if (dark) "#0a84ff" else "#007aff")
+    val tint = pal?.tint ?: Color.parseColor(if (dark) "#162a45" else "#e5f1ff")
     val onPrimary = pal?.onSolid ?: Color.WHITE
 
     companion object {
@@ -41,8 +41,8 @@ class Ui(val ctx: Context, pal: Palette? = null) {
 
     /** Status colors, a bit lighter on dark. */
     fun tone(hex: String): Int = when (hex) {
-        Ic.OK -> Color.parseColor(if (dark) "#4ade80" else "#16a34a")
-        Ic.WARN -> Color.parseColor(if (dark) "#fbbf24" else "#d97706")
+        Ic.OK -> Color.parseColor(if (dark) "#30d158" else "#248a3d")
+        Ic.WARN -> Color.parseColor(if (dark) "#ff9f0a" else "#b25000")
         else -> accent
     }
 
@@ -53,9 +53,9 @@ class Ui(val ctx: Context, pal: Palette? = null) {
 
     fun cardBox(pad: Int = 16): LinearLayout = LinearLayout(ctx).apply {
         orientation = LinearLayout.VERTICAL
-        background = shape(card, 20, stroke, 1)
+        background = shape(card, 16, stroke, 1)
         setPadding(dp(pad), dp(pad), dp(pad), dp(pad))
-        layoutParams = LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(14) }
+        layoutParams = LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(12) }
     }
 
     fun label(t: String, size: Float = 13f, color: Int = sub, bold: Boolean = false) = TextView(ctx).apply {
@@ -65,9 +65,9 @@ class Ui(val ctx: Context, pal: Palette? = null) {
     /** Rounded button; primary = filled, otherwise outlined. Icon (if any) takes the text color. */
     fun button(t: String, icon: Int?, primaryStyle: Boolean, onClick: () -> Unit): Button = Button(ctx).apply {
         text = t; isAllCaps = false; textSize = 16f; setTypeface(typeface, Typeface.BOLD)
-        stateListAnimator = null; minHeight = dp(54); minimumHeight = dp(54)
+        stateListAnimator = null; minHeight = dp(52); minimumHeight = dp(52)
         setTextColor(if (primaryStyle) onPrimary else this@Ui.text)
-        val base = if (primaryStyle) shape(primary, 16) else shape(card, 16, stroke, 1)
+        val base = if (primaryStyle) shape(primary, 12) else shape(card, 12, stroke, 1)
         background = RippleDrawable(ColorStateList.valueOf(Color.argb(40, 128, 128, 128)), base, null)
         gravity = Gravity.CENTER
         setPadding(dp(16), dp(8), dp(16), dp(8))
@@ -76,7 +76,7 @@ class Ui(val ctx: Context, pal: Palette? = null) {
         setOnClickListener { onClick() }
     }
 
-    val danger = Color.parseColor(if (dark) "#f87171" else "#dc2626")
+    val danger = Color.parseColor(if (dark) "#ff453a" else "#d70015")
 
     /** [a] blended toward [b] by [t] (0..1), opaque: tinted fills that look the same on any background. */
     fun mix(a: Int, b: Int, t: Float): Int = Color.rgb(

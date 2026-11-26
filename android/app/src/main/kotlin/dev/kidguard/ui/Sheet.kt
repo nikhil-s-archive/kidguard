@@ -45,7 +45,7 @@ class Sheet(act: Activity, u: Ui, title: String, stacked: Boolean = false) {
         d.requestWindowFeature(Window.FEATURE_NO_TITLE)
         box = LinearLayout(act).apply {
             orientation = LinearLayout.VERTICAL
-            background = GradientDrawable().apply { setColor(u.card); val r = u.dpf(28); cornerRadii = floatArrayOf(r, r, r, r, 0f, 0f, 0f, 0f) }
+            background = GradientDrawable().apply { setColor(u.card); val r = u.dpf(24); cornerRadii = floatArrayOf(r, r, r, r, 0f, 0f, 0f, 0f) }
             setPadding(u.dp(12), u.dp(10), u.dp(12), u.dp(16))
         }
         // header = drag handle + title + close: drag it down (or tap X / outside / Back) to close, like any bottom sheet

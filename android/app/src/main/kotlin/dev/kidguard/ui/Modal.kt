@@ -30,13 +30,13 @@ class Modal(private val act: Activity, private val u: Ui = Ui(act)) {
     private fun color(t: Tone): Int = when (t) {
         Tone.OK -> u.tone(Ic.OK)
         Tone.WARN -> u.tone(Ic.WARN)
-        Tone.DANGER -> Color.parseColor(if (u.dark) "#f87171" else "#dc2626")
+        Tone.DANGER -> u.danger
         Tone.INFO -> u.accent
     }
     private fun fill(t: Tone): Int = when (t) {
-        Tone.DANGER -> Color.parseColor("#dc2626")
-        Tone.OK -> Color.parseColor("#15803d")      // white label >= 4.5:1
-        Tone.WARN -> Color.parseColor("#b45309")
+        Tone.DANGER -> Color.parseColor("#d70015")
+        Tone.OK -> Color.parseColor("#248a3d")      // white label >= 4.5:1
+        Tone.WARN -> Color.parseColor("#b25000")
         Tone.INFO -> u.primary
     }
 
@@ -64,7 +64,7 @@ class Modal(private val act: Activity, private val u: Ui = Ui(act)) {
         val c = color(tone)
         val box = LinearLayout(act).apply {
             orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER_HORIZONTAL
-            background = u.shape(u.card, 28, u.stroke, 1)
+            background = u.shape(u.card, 24, u.stroke, 1)
             setPadding(u.dp(24), u.dp(24), u.dp(24), u.dp(20))
         }
         // everything above the buttons scrolls (big system font, keyboard, small screens); the buttons stay pinned below
@@ -92,7 +92,7 @@ class Modal(private val act: Activity, private val u: Ui = Ui(act)) {
         fun place(b: Button, first: Boolean) = row.addView(b, LinearLayout.LayoutParams(0, -1, 1f).apply { if (!first) marginStart = u.dp(10) })
         if (cancel != null) place(u.button(cancel, null, false) { d.dismiss(); onCancel() }, true)
         val okBtn = u.button(ok, null, true) { if (onOk()) d.dismiss() }.apply {
-            background = RippleDrawable(ColorStateList.valueOf(Color.argb(60, 255, 255, 255)), u.shape(fill(tone), 16), null)
+            background = RippleDrawable(ColorStateList.valueOf(Color.argb(60, 255, 255, 255)), u.shape(fill(tone), 12), null)
         }
         place(okBtn, cancel == null)
         box.addView(row, LinearLayout.LayoutParams(-1, -2).apply { topMargin = u.dp(20) })

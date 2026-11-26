@@ -1015,7 +1015,7 @@ class MainActivity : Activity() {
     private fun showLog() {
         val a = Store.of(this).logs()
         val u = ui2
-        val bad = Color.parseColor(if (u.dark) "#f87171" else "#dc2626")
+        val bad = u.danger
         val hm = java.text.SimpleDateFormat("HH:mm", java.util.Locale.US)
         val dayFmt = java.text.SimpleDateFormat("d/M", java.util.Locale.US)
         val box = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }

@@ -11,9 +11,9 @@ import android.widget.TextView
 
 /** Vector icons (Lucide, res/drawable/li_*.xml) instead of emoji, which look different on every phone. */
 object Ic {
-    const val OK = "#16a34a"
-    const val WARN = "#d97706"
-    const val INFO = "#2563eb"
+    const val OK = "#34c759"
+    const val WARN = "#ff9500"
+    const val INFO = "#007aff"
 
     // Parsing a vector XML costs ~0.5-1 ms; a home render asks for the same few (icon, colour) pairs dozens of times.
     // The cache keeps each tinted drawable's ConstantState (shared, immutable); every caller gets its own copy.

@@ -13,7 +13,7 @@ object Contrast {
     const val LARGE = 3.0   // icons, glyphs, large text, page dots
 
     const val WHITE = -0x1                 // #ffffffff
-    val INK = hex("#0f172a")               // the app's dark text
+    val INK = hex("#000000")               // the app's dark text
 
     fun hex(s: String): Int {
         val h = s.removePrefix("#")
@@ -81,14 +81,14 @@ object HomeStyle {
     private fun h(s: String) = Contrast.hex(s)
 
     val ACCENTS = listOf(
-        Accent("blue", h("#2563eb"), h("#dbeafe"), h("#1e40af"), h("#1e3a8a"), h("#93c5fd")),
-        Accent("orange", h("#c2410c"), h("#ffedd5"), h("#9a3412"), h("#7c2d12"), h("#fdba74")),
+        Accent("blue", h("#0066d6"), h("#e5f1ff"), h("#0051a8"), h("#162a45"), h("#64b5ff")),
+        Accent("orange", h("#b25000"), h("#fff4e0"), h("#8a3d00"), h("#422006"), h("#ff9f0a")),
         Accent("violet", h("#7c3aed"), h("#ede9fe"), h("#5b21b6"), h("#4c1d95"), h("#c4b5fd")),
         Accent("pink", h("#be185d"), h("#fce7f3"), h("#9d174d"), h("#831843"), h("#f9a8d4")),
-        Accent("green", h("#15803d"), h("#dcfce7"), h("#166534"), h("#14532d"), h("#86efac")),
+        Accent("green", h("#248a3d"), h("#e3f9e8"), h("#1b6e30"), h("#12301d"), h("#30d158")),
         Accent("teal", h("#0f766e"), h("#ccfbf1"), h("#115e59"), h("#134e4a"), h("#5eead4")),
-        Accent("red", h("#dc2626"), h("#fee2e2"), h("#991b1b"), h("#7f1d1d"), h("#fca5a5")),
-        Accent("slate", h("#475569"), h("#e2e8f0"), h("#334155"), h("#334155"), h("#cbd5e1")),
+        Accent("red", h("#d70015"), h("#ffe5e5"), h("#a80010"), h("#3b1519"), h("#ff6961")),
+        Accent("slate", h("#636366"), h("#e5e5ea"), h("#3a3a3c"), h("#2c2c2e"), h("#aeaeb2")),
     )
 
     fun accent(id: String): Accent = ACCENTS.firstOrNull { it.id == id } ?: ACCENTS[0]
@@ -99,15 +99,15 @@ object HomeStyle {
 
     fun palette(accentId: String, dark: Boolean): Palette {
         val a = accent(accentId)
-        val danger = h("#dc2626"); val warn = h(if (dark) "#f59e0b" else "#b45309")   // dark: lighter fill, dark glyph
-        return if (!dark) Palette(false, h("#f3f6fb"), Contrast.alpha(h("#ffffff"), CARD_ALPHA_LIGHT), h("#0f172a"), h("#475569"), h("#e2e8f0"),
+        val danger = h("#d70015"); val warn = h(if (dark) "#ff9f0a" else "#b25000")   // dark: lighter fill, dark glyph
+        return if (!dark) Palette(false, h("#f2f2f7"), Contrast.alpha(h("#ffffff"), CARD_ALPHA_LIGHT), h("#000000"), h("#636366"), h("#e5e5ea"),
             a.solid, Contrast.on(a.solid), a.tintL, a.textL, a.textL,
-            danger, Contrast.on(danger), h("#b91c1c"),
-            warn, Contrast.on(warn), h("#92400e"), h("#fef3c7"), h("#ffffff"))
-        else Palette(true, h("#0f172a"), Contrast.alpha(h("#1e293b"), CARD_ALPHA_DARK), h("#f1f5f9"), h("#a3b1c4"), h("#334155"),
+            danger, Contrast.on(danger), h("#a80010"),
+            warn, Contrast.on(warn), h("#8a3d00"), h("#fff4e0"), h("#ffffff"))
+        else Palette(true, h("#000000"), Contrast.alpha(h("#1c1c1e"), CARD_ALPHA_DARK), h("#ffffff"), h("#98989d"), h("#38383a"),
             a.solid, Contrast.on(a.solid), a.tintD, a.textD, a.textD,
-            danger, Contrast.on(danger), h("#fca5a5"),
-            warn, Contrast.on(warn), h("#fbbf24"), h("#422006"), h("#1e293b"))
+            danger, Contrast.on(danger), h("#ff6961"),
+            warn, Contrast.on(warn), h("#ff9f0a"), h("#3a2a0b"), h("#1c1c1e"))
     }
 
     /** The card surface in the worst case: over a pure black and a pure white wallpaper. */
@@ -128,7 +128,7 @@ object HomeStyle {
     val WALLS = listOf("sky", "night", "sunset", "aurora", "graphite", "ocean", "forest", "candy", "mint", "space", "dusk", "berry", "ember", "bloom", "lagoon", "nebula")
 
     private val LIGHT_INK = h("#ffffff")
-    private val DARK_INK = h("#0f172a")
+    private val DARK_INK = h("#000000")
 
     /**
      * Ink for text on a wallpaper region given as its downsampled pixels [px] (e.g. 32x32). The worst pixel decides

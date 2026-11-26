@@ -5,23 +5,23 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'unsafe-inline'; media-src 'self' blob: mediastream:; img-src data:">
 <title>KidGuard</title>
 <style>
-html,body{margin:0;height:100%;background:#0b1220 radial-gradient(circle at 50% 40%,#1e3a8a 0,#0b1220 65%);color:#fff;font:16px/1.4 system-ui,sans-serif;overflow:hidden;-webkit-user-select:none;user-select:none}
+html,body{margin:0;height:100%;background:#000 radial-gradient(circle at 50% 40%,rgba(10,132,255,.22) 0,#000 65%);color:#fff;font:16px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;overflow:hidden;-webkit-user-select:none;user-select:none}
 #remote{position:fixed;top:0;left:0;width:100%;height:100%;object-fit:cover}
 video:not(.live){opacity:0}  /* no grey WebView "play" poster before the first picture (owner 2026-11-18) */
-#local{position:fixed;right:12px;top:calc(12px + env(safe-area-inset-top));width:96px;height:128px;object-fit:cover;border-radius:14px;background:#1e293b;transform:scaleX(-1);display:none}
+#local{position:fixed;right:12px;top:calc(12px + env(safe-area-inset-top));width:96px;height:128px;object-fit:cover;border-radius:14px;background:#1c1c1e;transform:scaleX(-1);display:none}
 .top{position:fixed;left:20px;right:124px;top:calc(20px + env(safe-area-inset-top));text-shadow:0 1px 3px #000}
 .top b{display:block;font-size:22px}
-#ring{position:fixed;top:0;left:0;right:0;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:#0b1220;text-align:center;padding:24px}
-#ring .av{width:120px;height:120px;border-radius:50%;background:#1e3a8a;display:flex;align-items:center;justify-content:center;animation:p 1.6s infinite}
-@keyframes p{0%{box-shadow:0 0 0 0 rgba(59,130,246,.6)}100%{box-shadow:0 0 0 36px rgba(59,130,246,0)}}
+#ring{position:fixed;top:0;left:0;right:0;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:#000;text-align:center;padding:24px}
+#ring .av{width:120px;height:120px;border-radius:50%;background:#0a84ff;display:flex;align-items:center;justify-content:center;animation:p 1.6s infinite}
+@keyframes p{0%{box-shadow:0 0 0 0 rgba(10,132,255,.6)}100%{box-shadow:0 0 0 36px rgba(10,132,255,0)}}
 #ring h1{margin:0;font-size:26px;font-weight:600}
 .row{position:fixed;left:0;right:0;bottom:calc(36px + env(safe-area-inset-bottom));display:flex;justify-content:center;gap:56px}
 .b{display:flex;flex-direction:column;align-items:center;gap:8px;background:none;border:0;color:#fff;font:inherit;padding:0}
-.b i{width:76px;height:76px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.2)}
-.b.ok i{background:#16a34a}.b.no i{background:#dc2626}.b.on i{background:#fff;color:#0f172a}
+.b i{width:76px;height:76px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.18);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px)}
+.b.ok i{background:#30d158}.b.no i{background:#ff453a}.b.on i{background:#fff;color:#000}
 .b svg{width:34px;height:34px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 #bar{display:none;gap:40px}#bar .b i{width:64px;height:64px}#bar .b svg{width:28px;height:28px}
-#off{position:fixed;top:0;left:0;right:0;bottom:0;display:none;align-items:center;justify-content:center;color:#cbd5e1}
+#off{position:fixed;top:0;left:0;right:0;bottom:0;display:none;align-items:center;justify-content:center;color:#98989d}
 #msg{position:fixed;left:0;right:0;top:45%;text-align:center;font-size:20px;display:none;padding:0 24px;text-shadow:0 1px 3px #000}
 </style></head><body>
 <video id="remote" autoplay playsinline></video>
