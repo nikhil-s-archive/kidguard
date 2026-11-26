@@ -173,6 +173,7 @@ data class Rules(
     val noInstall: Boolean = false,
     val noDebug: Boolean = false,
     val pinShot: Boolean = true,             // wrong on-device admin PIN 3x -> one front-camera photo for the parents (Shot.kt)
+    val hideApp: Boolean = false,            // parent-controlled: hide KidGuard's launcher icon on the kid's phone
     val pinHash: String = "",                // hash of the parent PIN, guards "pair another device" on the child (never sent to the parent)
     val pinSalt: String = "",                // "" = legacy sha256("kg:"+pin); else iterated sha256 with this salt
     val dailyByDay: List<Int> = emptyList(), // Monday..Sunday minutes, or empty; replaces dailyMin when present
@@ -252,7 +253,7 @@ data class Rules(
         .put("allow", JSONArray(allow.sorted()))
         .put("pausedUntil", pausedUntil)
         .put("bonus", JSONObject().put("day", bonusDay).put("min", bonusMin))
-        .put("noInstall", noInstall).put("noDebug", noDebug).put("pinShot", pinShot)
+        .put("noInstall", noInstall).put("noDebug", noDebug).put("pinShot", pinShot).put("hideApp", hideApp)
         .put("pinSet", pinHash.isNotBlank())
         .put("dailyByDay", JSONArray(dailyByDay))
         .apply { if (dailySavedMin >= 0) put("dailySaved", JSONObject().put("min", dailySavedMin).put("byDay", JSONArray(dailySavedBy))) }
@@ -377,6 +378,7 @@ data class Rules(
                 lockLocation = o.optBoolean("lockLocation", true),
                 noAirplane = o.optBoolean("noAirplane", true),
                 showWatching = o.optBoolean("showWatching", true),
+                hideApp = o.optBoolean("hideApp", false),
                 autoUpdate = o.optBoolean("autoUpdate", true),
                 noVpn = o.optBoolean("noVpn", false),
                 noIncognito = o.optBoolean("noIncognito", false),

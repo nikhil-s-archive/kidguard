@@ -16,7 +16,7 @@ class RelayPairLogicTest {
     }
 
     @Test fun onlyHttpsRelay() {
-        assertTrue(RelayPairLogic.usable("https://kg-relay.99-hoangtran.workers.dev"))
+        assertTrue(RelayPairLogic.usable("https://kidguard-relay.nikhil-s-archive.workers.dev"))
         assertTrue(!RelayPairLogic.usable("http://x"))
     }
 
@@ -47,8 +47,8 @@ class RelayPairLogicTest {
     }
 
     @Test fun qrLinkOneForEveryWay() {
-        assertEquals("https://kidguard.asia/app/#pair=123456&lan=192.168.1.5:8770", RelayPairLogic.qrLink("123456", "http://192.168.1.5:8770", true))
-        assertEquals("https://kidguard.asia/app/#pair=123456", RelayPairLogic.qrLink("123456", null, true))   // no Wi-Fi: still a QR
+        assertEquals("https://kidguard.nikhil-s-archive.workers.dev/#pair=123456&lan=192.168.1.5:8770", RelayPairLogic.qrLink("123456", "http://192.168.1.5:8770", true))
+        assertEquals("https://kidguard.nikhil-s-archive.workers.dev/#pair=123456", RelayPairLogic.qrLink("123456", null, true))   // no Wi-Fi: still a QR
         assertEquals("http://192.168.1.5:8770/#pair=123456", RelayPairLogic.qrLink("123456", "http://192.168.1.5:8770", false))
         assertNull(RelayPairLogic.qrLink("123456", null, false))
     }

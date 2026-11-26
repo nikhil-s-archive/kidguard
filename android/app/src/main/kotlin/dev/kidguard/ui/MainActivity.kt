@@ -825,7 +825,7 @@ class MainActivity : Activity() {
         updBtn.visibility = if (!owner && Update.apk(this).exists() && UpdateLogic.newer(Update.stateJson(this).optString("latest"), Update.current())) View.VISIBLE else View.GONE
         selfBtn.visibility = if (owner || android.os.Build.VERSION.SDK_INT < 30) View.GONE else View.VISIBLE
         steps.update()
-        homeCard.visibility = if (LauncherSafe.homeIsOurs(this)) View.GONE else View.VISIBLE
+        homeCard.visibility = if (!Flavor.HOME || LauncherSafe.homeIsOurs(this)) View.GONE else View.VISIBLE
         val lan = Guard.lanUrl()
         val u = ui2
         status.removeAllViews(); kidNotes.removeAllViews(); warnN = 0

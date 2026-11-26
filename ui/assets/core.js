@@ -55,10 +55,11 @@ const load = () => {
     return JSON.parse(fromApp || localStorage.getItem(KEY) || "[]");
   } catch { return []; }
 };
-const save = k => {
+const save = (k, noSync) => {
   // healAt / fb / relayTry: per page load only (core.js relocate / learnAddrs)
   try { localStorage.setItem(KEY, JSON.stringify(k, (key, v) => key === "healAt" || key === "fb" || key === "relayTry" || key === "gateOff" || key === "migTry" || key === "icm" || key === "ikP" ? undefined : v)); } catch {}
   if (APP) kgCall("setKids", JSON.stringify(k.filter(x => x.target).map(x => ({ name: x.name, target: x.target, via: x.via, id: x.id, token: x.token, lv: x.lv, relay: x.relay }))));
+  if (!noSync && !LOCAL) auth.syncPut(k);
 };
 let kids = load(), cur = null, st = null, pendingRules = null, timer = null, edit = null, tab = "home", lastErr = "", viewDay = null, histDays = null, cachedAt = 0, srvWhy = "", seenAt = 0, answered = new Set(), histSel = -1, lastNet = false;
 const onLan = () => !location.pathname.startsWith("/c/") && !isRelayOrigin;
@@ -124,7 +125,7 @@ function norm(e) {
   e.dailySaved = e.dailySaved && typeof e.dailySaved === "object" ? { min: +e.dailySaved.min || 0, byDay: Array.isArray(e.dailySaved.byDay) && e.dailySaved.byDay.length === 7 ? e.dailySaved.byDay : [] } : null;   // daily limit paused (0.9.54)
   if (e.dailyMin || e.dailyByDay.length) e.dailySaved = null;   // a limit set meanwhile (template, mode) wins over the paused one
   e.schedules = e.schedules || []; e.approved = e.approved || []; e.safeDns = e.safeDns || ""; e.safeDnsPauseUntil = +e.safeDnsPauseUntil || 0; e.noVpn = !!e.noVpn; e.noIncognito = !!e.noIncognito; e.webBlock = Array.isArray(e.webBlock) ? e.webBlock : []; e.webAllow = Array.isArray(e.webAllow) ? e.webAllow : []; e.frpIds = Array.isArray(e.frpIds) ? e.frpIds.map(String) : [];
-  e.trackMin = e.trackMin === undefined ? 5 : +e.trackMin; e.lockLocation = e.lockLocation !== false; e.noAirplane = e.noAirplane !== false; e.showWatching = e.showWatching !== false; e.autoUpdate = e.autoUpdate !== false; e.tsKeep = !!e.tsKeep; e.blockNew = !!e.blockNew; e.monitor = !!e.monitor;
+  e.trackMin = e.trackMin === undefined ? 5 : +e.trackMin; e.lockLocation = e.lockLocation !== false; e.noAirplane = e.noAirplane !== false; e.showWatching = e.showWatching !== false; e.autoUpdate = e.autoUpdate !== false; e.tsKeep = !!e.tsKeep; e.blockNew = !!e.blockNew; e.monitor = !!e.monitor; e.hideApp = !!e.hideApp;
   e.kidClean = !!e.kidClean;
   { const w = e.watch || {}, n = w.notif || {};   // 0.9.29 what the parent may read (docs/protocol.md "Monitoring")
     e.watch = { notif: { on: !!n.on, kw: !!n.kw, apps: ["only", "except"].includes(n.apps) ? n.apps : "all", list: Array.isArray(n.list) ? n.list.map(String).slice(0, 200) : [] },
@@ -225,10 +226,10 @@ const WIRE_NAME = Object.fromEntries(Object.entries(WIRE).map(([n, c]) => [c, n]
 const wireOut = (path, body) => path === "/cmd" && body && Object.hasOwn(WIRE, body.type) ? { ...body, type: WIRE[body.type] } : body;
 const wireIn = j => { for (const f of ["expired", "queue"]) if (j && Array.isArray(j[f])) j[f] = j[f].map(x => x && Object.hasOwn(WIRE_NAME, x.type) ? { ...x, type: WIRE_NAME[x.type] } : x); return j; };
 /** The author's shared relay, on by default on paired phones (Relay.DEFAULT_URL in the app). */
-const DEFAULT_RELAY = "https://kg-relay.99-hoangtran.workers.dev";
+const DEFAULT_RELAY = "https://kidguard-relay.nikhil-s-archive.workers.dev";
 // Plan B (docs/decisions/remote.md 2026-11-18): the relay is JSON only; a browser gets this page from the website (SITE /app/, /go)
 // and calls the relay cross-origin. RELAY = the relay of the link that opened it (#r=<https origin>), else the last one, else the author's.
-const SITE = "https://kidguard.asia";
+const SITE = "https://kidguard.nikhil-s-archive.workers.dev";
 const OLD_SITE = "https://kid-guard.pages.dev";
 // a link to one part of the website guide, in a new tab (owner 2026-11-20: every step that needs the guide links to it)
 const gLink = (id, k = "gd.open") => `<a class="glink" href="${SITE}${lang === "en" ? "/en" : ""}/guide${id ? "#" + id : ""}" target="_blank" rel="noopener">${ic("book-open")} ${t(k)}${ic("external-link")}</a>`;   // links shared before 2026-11-19 (same site)
@@ -240,9 +241,9 @@ const setRelay = r => { r = httpsOrigin(r || ""); if (!r) return; RELAY = r; try
 /** A browser relay kid's relay: its own (target), else this page's. */
 const relayOf = k => { const t = k && k.target, u = t === OLD_RELAY ? DEFAULT_RELAY : t || RELAY; return relayOf.alt ? relayOf.swap(u) : u; };
 // the shared relay also answers on our own domain (2026-11-20): a network filtering *.workers.dev gets the other name (call1)
-relayOf.swap = u => u === DEFAULT_RELAY ? "https://relay.kidguard.asia" : u === "https://relay.kidguard.asia" ? DEFAULT_RELAY : u;
+relayOf.swap = u => u === "https://kg-relay.99-hoangtran.workers.dev" ? "https://relay.kidguard.asia" : u === "https://relay.kidguard.asia" ? "https://kg-relay.99-hoangtran.workers.dev" : u;
 /** The relay a pasted / scanned link names: #r=, else (a link to the website) the page's relay, else the link's own origin (an old relay link). */
-const relayOfLink = (u, h) => httpsOrigin(h.get("r") || "") || (u.origin === SITE || u.origin === OLD_SITE || u.origin === location.origin ? RELAY : u.origin);
+const relayOfLink = (u, h) => httpsOrigin(h.get("r") || "") || (u.origin === SITE || u.origin === OLD_SITE || u.origin === "https://kidguard.asia" || u.origin === location.origin ? RELAY : u.origin);
 /** The link that always opens: the website's /go page (core.js goBoot); r= only for a relay other than the author's. */
 const goLink = (url, id, token, name, relay) => `${url}/go#c=${encodeURIComponent(id)}&k=${encodeURIComponent(token)}&n=${encodeURIComponent(name || "")}${relay && relay !== DEFAULT_RELAY ? "&r=" + encodeURIComponent(relay) : ""}`;
 const lanLink = (base, id, token, name) => `${base}/#lk=${token}&rc=${encodeURIComponent(id)}&ru=${encodeURIComponent(RELAY)}&n=${encodeURIComponent(name || "")}`;
@@ -528,6 +529,7 @@ async function boot() {
   }
   isRelayOrigin = true;
   if (pc && anyOk()) return addScreen.far(pc);   // the kid's QR opened by a camera: an https page can't reach the LAN, so the relay
+  if (auth.get()) await auth.syncPull(true);
   const relayKids = kids.filter(k => k.via === "relay");
   if (relayKids.length === 1) return open(relayKids[0]);
   listScreen(relayKids);
@@ -599,12 +601,13 @@ async function kidBrief(list) {
 }
 // --- app mode: kid list, add-kid ---------------------------------------------
 function appBoot() {
-  save(kids);   // tell the app the current list once on load
+  save(kids, true);   // tell the app the current list once on load
   const list = homeKids(); reScreen = appBoot;
-  $("#app").innerHTML = head("KidGuard") + (list.length ? list.map((k, i) =>
+  $("#app").innerHTML = head("KidGuard") + auth.card() + (list.length ? list.map((k, i) =>
     kidRow(k, i)).join("")
     : `<div class="card empty"><span class="e">${ic("inbox")}</span><p>${t("app.none")}</p></div>`) +
     `<div class="row">${list.length > 1 ? `<button class="pri sp" id="ovGo">${ic("layout-grid")} ${t("ovN", list.length)}</button>` : ""}<button class="${list.length > 1 ? "" : "pri "}sp" id="addKid">${ic("plus")} ${t("addKid")}</button></div>`;
+  auth.wire();
   kidRow.wire(list);
   kidBrief(list);
   $("#addKid").onclick = addScreen;
@@ -684,16 +687,17 @@ function addScreen() {   // addScreen.on = it is showing (no new top-level names
   // one QR does every way (owner 2026-11-20): scan + the code first; typing an address / pasting a link folded under "Other ways"
   const fold = anyOk() && !keep[0] && !keep[1];
   $("#app").innerHTML = head(t("addKid"), true) + `
-  ${APP ? `<div class="card"><h2>${ic("scan-line")} ${t("scan.h")}</h2><p class="mute">${t("scan.p")}</p><div class="row" style="gap:8px;flex-wrap:wrap"><button class="pri" id="scanGo">${ic("scan-line")} ${t("scan.go")}</button><button id="scanImg">${ic("image")} ${t("scan.img")}</button></div></div>` : ""}
+  ${APP ? `<div class="card"><h2>${ic("scan-line")} ${t("scan.h")}</h2><p class="mute">${t("scan.p")}</p><div class="row" style="gap:8px;flex-wrap:wrap"><button class="pri" id="scanGo">${ic("scan-line")} ${t("scan.go")}</button><button id="scanImg">${ic("image")} ${t("scan.img")}</button></div></div>`
+    : `<div class="card"><h2>${ic("scan-line")} ${t("scan.h")}</h2><p class="mute">${t("scan.p")}</p><div class="row" style="gap:8px;flex-wrap:wrap">${"BarcodeDetector" in window && navigator.mediaDevices && navigator.mediaDevices.getUserMedia ? `<button class="pri" id="scanCam">${ic("scan-line")} ${t("scan.cam")}</button>` : ""}<button id="scanFileBtn">${ic("image")} ${t("scan.file")}</button><input type="file" id="scanFile" accept="image/*" hidden></div></div>`}
   ${anyOk() ? anyCard() : ""}
   ${fold ? `<details class="more"><summary><b>${t("add.other")}</b></summary>` : ""}
   <div class="card"><h2>${ic("wifi")} ${t("add.lanH")}</h2>
     <p class="mute">${t("add.lanP")}</p>
     <div class="pairf"><input id="addr" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="192.168.1.5" aria-label="${esc(t("add.addr"))}" value="${esc(keep[0])}"><button class="pri" id="lanGo">${ic("link")} ${t("add.connect")}</button></div><p class="err" id="e1"></p>
     ${APP ? "" : `<p class="mute">${ic("lightbulb")} ${t("add.sameOrigin")}</p>`}</div>
-  ${APP ? `<div class="card"><h2>${ic("globe")} ${t("add.relayH")}</h2>
+  <div class="card"><h2>${ic("globe")} ${t("add.relayH")}</h2>
     <p class="mute">${t("add.relayP")}</p>
-    <div class="pairf"><input id="rlink" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="${esc(t("add.relayPh"))}" aria-label="${esc(t("add.relayLink"))}" value="${esc(keep[1])}"><button class="pri" id="rGo">${ic("globe")} ${t("add")}</button></div><p class="err" id="e2"></p></div>` : ""}
+    <div class="pairf"><input id="rlink" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="${esc(t("add.relayPh"))}" aria-label="${esc(t("add.relayLink"))}" value="${esc(keep[1])}"><button class="pri" id="rGo">${ic("globe")} ${t("add")}</button></div><p class="err" id="e2"></p></div>
   ${fold ? "</details>" : ""}
 `;
   addScreen.bk();
@@ -706,6 +710,9 @@ function addScreen() {   // addScreen.on = it is showing (no new top-level names
   if ($("#rGo")) $("#rGo").onclick = () => { if (!addRelayLink($("#rlink").value)) $("#e2").textContent = t("add.badLink"); };
   if ($("#scanGo")) $("#scanGo").onclick = () => { try { KGApp.scanQr(); } catch { toast("err|" + t("scan.none")); } };
   if ($("#scanImg")) $("#scanImg").onclick = () => { try { KGApp.scanImg(); } catch { toast("err|" + t("scan.none")); } };
+  if ($("#scanCam")) $("#scanCam").onclick = () => auth.scanCam();
+  if ($("#scanFileBtn")) $("#scanFileBtn").onclick = () => { if (!("BarcodeDetector" in window)) return toast("err|" + t("scan.noBrowser")); $("#scanFile").click(); };
+  if ($("#scanFile")) $("#scanFile").onchange = e => auth.scanFile(e.target.files && e.target.files[0]);
 }
 addScreen.enter = () => { if (!addScreen.on) { addScreen.on = true; try { if (!navLvl()) history.pushState({ kg: 1, add: 1 }, ""); } catch {} } };
 addScreen.bk = () => { $("#appSetBack").onclick = () => { if (history.state && history.state.add) history.back(); else { addScreen.on = false; appBoot(); } }; };
@@ -793,7 +800,7 @@ window.kgScan = o => {
 // plain screens (list / add / pair): one centred column (#app.solo); render() and the overview clear it
 // back: a sub-screen (app settings) shows a back arrow instead of the logo, and no settings gear
 // on kidguard.asia/app/ (owner 2026-11-20: no way back to the site): a house button to the home page
-const head = (title, back) => { $("#app").className = "solo"; return `<div class="row" style="margin-bottom:14px">${back ? `<button type="button" class="rb" id="appSetBack" aria-label="${esc(t("back"))}" title="${esc(t("back"))}">${ic("arrow-left")}</button>` : `<span class="badge">${ic("shield")}</span>`}<h1 class="sp" style="margin:0">${title}</h1>${!back && !APP && [SITE, OLD_SITE].includes(location.origin) ? `<a class="rb btn" href="/" aria-label="${esc(t("st.home"))}" title="${esc(t("st.home"))}">${ic("house")}</a>` : ""}${back ? "" : APP ? `<button type="button" class="rb" id="appSetBtn" aria-label="${esc(t("au.h"))}" title="${esc(t("au.h"))}">${ic("settings")}</button>` : `<button type="button" class="rb" data-view-set aria-label="${esc(t("vs.h"))}" title="${esc(t("vs.h"))}">${ic("settings")}</button>`}</div>`; };
+const head = (title, back) => { $("#app").className = "solo"; return `<div class="row" style="margin-bottom:14px">${back ? `<button type="button" class="rb" id="appSetBack" aria-label="${esc(t("back"))}" title="${esc(t("back"))}">${ic("arrow-left")}</button>` : `<span class="badge">${ic("shield")}</span>`}<h1 class="sp" style="margin:0">${title}</h1>${!back && !APP && [SITE, OLD_SITE, "https://kidguard.asia"].includes(location.origin) && location.pathname !== "/" ? `<a class="rb btn" href="/" aria-label="${esc(t("st.home"))}" title="${esc(t("st.home"))}">${ic("house")}</a>` : ""}${back ? "" : APP ? `<button type="button" class="rb" id="appSetBtn" aria-label="${esc(t("au.h"))}" title="${esc(t("au.h"))}">${ic("settings")}</button>` : `<button type="button" class="rb" data-view-set aria-label="${esc(t("vs.h"))}" title="${esc(t("vs.h"))}">${ic("settings")}</button>`}</div>`; };
 document.addEventListener("click", e => { if (APP && e.target.closest && e.target.closest("#appSetBtn")) appSettings(); });
 async function lanHello(target, code = "") {
   const e = $("#e1"); if (e) e.textContent = t("connecting");
@@ -884,13 +891,175 @@ function startCard(full) {
 
 function listScreen(list) {
   reScreen = () => listScreen(list);
-  $("#app").innerHTML = head("KidGuard") + (list.length ? list.map((k, i) =>
+  $("#app").innerHTML = head("KidGuard") + (!LOCAL ? auth.card() : "") + (list.length ? list.map((k, i) =>
     kidRow(k, i)).join("")
     : "")
     + (list.length > 1 ? `<button class="pri" id="ovGo">${ic("layout-grid")} ${t("ovN", list.length)}</button>` : "")
     + (anyOk() ? anyCard() : "") + startCard(!list.length);
+  auth.wire();
   anyWire();
   kidRow.wire(list);
   kidBrief(list);
   if ($("#ovGo")) $("#ovGo").onclick = () => overview(list, () => listScreen(list));
 }
+
+// --- Parent account (cross-browser login + synced kids list) + browser QR scan ---
+const auth = {
+  get() { try { const a = JSON.parse(localStorage.getItem("kg.auth") || "null"); return a && a.token && a.username ? a : null; } catch { return null; } },
+  set(a) { try { if (a) localStorage.setItem("kg.auth", JSON.stringify(a)); else localStorage.removeItem("kg.auth"); } catch {} },
+  base(u) { const org = httpsOrigin(u || "") || DEFAULT_RELAY; return (APP ? "/k/" + b64u(org) : org) + "/auth"; },
+  async call(path, method, body, a) {
+    a = a || auth.get(); if (!a) throw errOf("unauthorized");
+    const h = { "X-KG-User": a.username, "X-KG-Auth": a.token };
+    if (body) h["Content-Type"] = "application/json";
+    const r = await fetch(auth.base(a.url) + path, { method, headers: h, body: body ? JSON.stringify(body) : undefined, signal: quick(15000) });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw errOf(j.error || ("HTTP " + r.status), null, j.retryAt);
+    return j;
+  },
+  merge(srv) {
+    const lan = kids.filter(x => x.via !== "relay");
+    const map = new Map();
+    for (const x of Array.isArray(srv) ? srv : []) if (x && x.id && x.token) map.set(x.id, { id: x.id, token: x.token, name: x.name || t("kid"), via: "relay", target: x.target || DEFAULT_RELAY, ...(x.own ? { own: 1 } : {}) });
+    kids = [...lan, ...map.values()];
+    save(kids, true);
+    return kids;
+  },
+  syncPut(list) {
+    const a = auth.get(); if (!a) return;
+    clearTimeout(auth._t);
+    auth._t = setTimeout(() => {
+      const rk = (list || kids).filter(x => x.via === "relay" && x.id && x.token).map(x => ({ id: x.id, token: x.token, name: x.name, via: "relay", target: x.target || DEFAULT_RELAY, ...(x.own ? { own: 1 } : {}) }));
+      auth.call("/kids", "PUT", { kids: rk }, a).catch(e => { if (e && e.raw === "unauthorized") { auth.set(null); toast("warn|" + t("auth.expired")); } });
+    }, 300);
+  },
+  async syncPull(quiet) {
+    const a = auth.get(); if (!a) return false;
+    try {
+      const j = await auth.call("/kids", "GET", null, a);
+      auth.merge(j.kids || []);
+      if (!quiet) toast("ok|" + t("auth.synced"));
+      return true;
+    } catch (e) {
+      if (e && e.raw === "unauthorized") { auth.set(null); if (!quiet) toast("warn|" + t("auth.expired")); }
+      return false;
+    }
+  },
+  card() {
+    const a = auth.get();
+    if (a) return `<div class="card row" style="gap:8px;flex-wrap:wrap"><span class="sp" style="min-width:0">${ic("user")} <b>${esc(t("auth.as", a.username))}</b></span><button type="button" class="sm" id="authSync">${ic("refresh-cw")} ${t("auth.sync")}</button><button type="button" class="sm" id="authAcc">${ic("settings")} ${t("auth.h")}</button></div>`;
+    return `<div class="card"><h2>${ic("user")} ${t("auth.h")}</h2><p class="mute">${t("auth.p")}</p><div class="row" style="gap:8px;flex-wrap:wrap"><button type="button" class="pri" id="authIn">${ic("log-in")} ${t("auth.in")}</button><button type="button" id="authUp">${ic("user-plus")} ${t("auth.up")}</button></div></div>`;
+  },
+  wire() {
+    if ($("#authIn")) $("#authIn").onclick = () => auth.modal("login");
+    if ($("#authUp")) $("#authUp").onclick = () => auth.modal("register");
+    if ($("#authAcc")) $("#authAcc").onclick = () => auth.modal("account");
+    if ($("#authSync")) $("#authSync").onclick = async () => { if (await auth.syncPull(false)) reScreen ? reScreen() : boot(); };
+  },
+  modal(mode) {
+    const a = auth.get();
+    mode = mode || (a ? "account" : "login");
+    const form = m => {
+      if (m === "account" && a) return `<div class="dp" role="dialog" aria-modal="true" aria-labelledby="askT">${sheetHead("user", esc(a.username))}
+        <div class="row" style="gap:8px;margin-bottom:14px"><button type="button" class="sp" id="auSync">${ic("refresh-cw")} ${t("auth.sync")}</button><button type="button" class="bad sp" id="auOut">${ic("log-out")} ${t("auth.out")}</button></div>
+        <label class="row" style="gap:8px;margin-bottom:14px;cursor:pointer"><input type="checkbox" id="auClr"><span>${t("auth.clearKids")}</span></label>
+        <hr style="margin:12px 0;border:0;border-top:1px solid var(--line)">
+        <p style="margin:0 0 8px"><b>${t("auth.chgPw")}</b></p>
+        <div class="pairf"><input id="auOld" type="password" autocomplete="current-password" placeholder="${esc(t("auth.oldPw"))}">
+        <input id="auNew1" type="password" autocomplete="new-password" placeholder="${esc(t("auth.newPw"))}">
+        <input id="auNew2" type="password" autocomplete="new-password" placeholder="${esc(t("auth.pw2"))}"></div>
+        <button type="button" class="pri" id="auPwGo" style="width:100%;margin-top:8px">${ic("key-round")} ${t("auth.chgPw")}</button><p class="err" id="auE"></p></div>`;
+      const up = m === "register";
+      return `<div class="dp" role="dialog" aria-modal="true" aria-labelledby="askT">${sheetHead(up ? "user-plus" : "log-in", t(up ? "auth.up" : "auth.in"))}
+        <div class="seg" role="tablist" style="margin-bottom:12px"><button type="button" role="tab" data-am="login" aria-selected="${!up}">${t("auth.in")}</button><button type="button" role="tab" data-am="register" aria-selected="${up}">${t("auth.up")}</button></div>
+        <div class="pairf"><input id="auU" autocapitalize="off" autocorrect="off" spellcheck="false" autocomplete="username" placeholder="${esc(t("auth.user"))}" aria-label="${esc(t("auth.user"))}">
+        <input id="auP1" type="password" autocomplete="${up ? "new-password" : "current-password"}" placeholder="${esc(t("auth.pw"))}" aria-label="${esc(t("auth.pw"))}">
+        ${up ? `<input id="auP2" type="password" autocomplete="new-password" placeholder="${esc(t("auth.pw2"))}" aria-label="${esc(t("auth.pw2"))}">` : ""}</div>
+        <p class="mute" style="font-size:12px;margin:4px 0 8px">${t(up ? "auth.userH" : "auth.p")}</p>
+        <details class="ownr"${!APP && RELAY !== DEFAULT_RELAY ? " open" : ""}><summary>${ic("link")} <span class="sp">${t("any.own")}</span>${ic("chevron-down")}</summary><input id="auR" type="url" inputmode="url" autocapitalize="off" spellcheck="false" placeholder="https://kidguard-relay.….workers.dev" value="${esc(RELAY !== DEFAULT_RELAY ? RELAY : "")}"></details>
+        <button type="button" class="pri" id="auGo" style="width:100%;margin-top:12px">${ic(up ? "user-plus" : "log-in")} ${t(up ? "auth.up" : "auth.in")}</button><p class="err" id="auE"></p></div>`;
+    };
+    sheet(form(mode), (pop, done) => {
+      const say = m => { const e = pop.querySelector("#auE"); if (e) e.textContent = m; };
+      pop.querySelectorAll("[data-am]").forEach(b => b.onclick = () => { done(); auth.modal(b.dataset.am); });
+      if (pop.querySelector("#auSync")) pop.querySelector("#auSync").onclick = async () => { if (await auth.syncPull(false)) { done(); cur ? render() : reScreen ? reScreen() : boot(); } };
+      if (pop.querySelector("#auOut")) pop.querySelector("#auOut").onclick = async () => {
+        const clr = !!(pop.querySelector("#auClr") || {}).checked;
+        await auth.call("/logout", "POST", {}, a).catch(() => {});
+        auth.set(null);
+        if (clr) { kids = kids.filter(x => x.via !== "relay"); save(kids, true); if (cur && cur.via === "relay") { gen++; clearInterval(timer); cur = null; } }
+        done(); toast("ok|" + t("auth.loggedOut")); boot();
+      };
+      if (pop.querySelector("#auPwGo")) pop.querySelector("#auPwGo").onclick = async () => {
+        say("");
+        const o = pop.querySelector("#auOld").value, n1 = pop.querySelector("#auNew1").value, n2 = pop.querySelector("#auNew2").value;
+        if (n1.length < 6) return say(t("auth.badPw"));
+        if (n1 !== n2) return say(t("auth.mismatch"));
+        try { await auth.call("/password", "POST", { oldPassword: o, newPassword: n1 }, a); done(); toast("ok|" + t("auth.pwDone")); }
+        catch (e) { say(e.raw === "wrong credentials" ? t("auth.wrong") : gateErr(e)); }
+      };
+      const go = pop.querySelector("#auGo");
+      if (go) {
+        const run = async () => {
+          say("");
+          const u = pop.querySelector("#auU").value.trim().toLowerCase(), p1 = pop.querySelector("#auP1").value, p2 = (pop.querySelector("#auP2") || {}).value;
+          const ownR = ((pop.querySelector("#auR") || {}).value || "").trim();
+          if (ownR && !httpsOrigin(ownR)) return say(t("any.ownBad"));
+          if (!/^[a-z0-9][a-z0-9._@-]{2,63}$/.test(u)) return say(t("auth.badUser"));
+          if (p1.length < 6) return say(t("auth.badPw"));
+          if (mode === "register" && p1 !== p2) return say(t("auth.mismatch"));
+          const url = httpsOrigin(ownR) || RELAY || DEFAULT_RELAY;
+          go.disabled = true;
+          try {
+            const body = { username: u, password: p1 };
+            if (mode === "register") body.kids = kids.filter(x => x.via === "relay" && x.id && x.token).map(x => ({ id: x.id, token: x.token, name: x.name, via: "relay", target: x.target || DEFAULT_RELAY, ...(x.own ? { own: 1 } : {}) }));
+            const r = await fetch(auth.base(url) + "/" + mode, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal: quick(15000) });
+            const j = await r.json().catch(() => ({}));
+            if (!r.ok || !j.token) {
+              say(j.error === "account exists" ? t("auth.exists") : j.error === "wrong credentials" ? t("auth.wrong") : gateErr({ raw: j.error, retryAt: j.retryAt, message: j.error }));
+              go.disabled = false; return;
+            }
+            auth.set({ url, username: j.username || u, token: j.token });
+            if (!APP && url !== DEFAULT_RELAY) setRelay(url);
+            auth.merge(j.kids || []);
+            done(); toast("ok|" + t(mode === "register" ? "auth.created" : "auth.loggedIn"));
+            boot();
+          } catch { say(t("e.net")); go.disabled = false; }
+        };
+        go.onclick = run;
+        pop.querySelectorAll("input").forEach(i => i.onkeydown = e => { if (e.key === "Enter") run(); });
+      }
+    });
+  },
+  async scanFile(file) {
+    if (!file) return;
+    if (!("BarcodeDetector" in window)) return toast("err|" + t("scan.noBrowser"));
+    try {
+      const bm = await createImageBitmap(file);
+      const res = await new BarcodeDetector({ formats: ["qr_code"] }).detect(bm);
+      if (bm.close) bm.close();
+      if (!res.length || !res[0].rawValue) return toast("err|" + t("scan.noQr"));
+      window.kgScan({ text: res[0].rawValue });
+    } catch { toast("err|" + t("scan.bad")); }
+  },
+  async scanCam() {
+    if (!("BarcodeDetector" in window) || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return toast("err|" + t("scan.noBrowser"));
+    let stream = null, stop = false;
+    try { stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } }); }
+    catch { return toast("err|" + t("scan.camErr")); }
+    const bd = new BarcodeDetector({ formats: ["qr_code"] });
+    sheet(`<div class="dp" role="dialog" aria-modal="true" aria-labelledby="askT">${sheetHead("scan-line", t("scan.cam"))}<video id="scV" playsinline autoplay muted style="width:100%;border-radius:12px;background:#000;max-height:55vh"></video></div>`, (pop, done) => {
+      const v = pop.querySelector("#scV"); v.srcObject = stream;
+      const cleanup = () => { stop = true; stream.getTracks().forEach(tr => tr.stop()); };
+      const tick = async () => {
+        if (stop || !v.isConnected) return cleanup();
+        if (v.readyState >= 2) try {
+          const r = await bd.detect(v);
+          if (r.length && r[0].rawValue) { cleanup(); done(); window.kgScan({ text: r[0].rawValue }); return; }
+        } catch {}
+        setTimeout(tick, 250);
+      };
+      setTimeout(tick, 300);
+    }).then(() => { stop = true; stream.getTracks().forEach(tr => tr.stop()); });
+  },
+};

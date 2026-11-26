@@ -30,12 +30,24 @@ document.addEventListener("click", e => {
 });
 // browser screens without a kid open (head()): one gear for language + theme, so the title keeps its line
 function viewSet() {
+  const bn = !APP && !LOCAL && "Notification" in window;
+  let bnOn = false; try { bnOn = bn && Notification.permission === "granted" && localStorage.getItem("kg.brNotif") === "1"; } catch {}
   const body = () => `<div class="dp" role="dialog" aria-modal="true" aria-labelledby="askT">${sheetHead("settings", t("vs.h"))}<p class="mute" style="margin:0 0 6px">${t("lang")}</p>${langSel("langVs")}
-    <p class="mute" style="margin:14px 0 6px">${t("theme.h")}</p><div class="seg" role="tablist">${THEMES.map(x => `<button type="button" role="tab" data-th="${x}" aria-selected="${x === theme}">${t("theme." + x)}</button>`).join("")}</div></div>`;
-  const wire = pop => pop.querySelectorAll("[data-th]").forEach(b => b.onclick = () => {
-    theme = b.dataset.th; try { localStorage.setItem("kg.theme", theme); } catch {}
-    applyTheme(); pop.querySelectorAll("[data-th]").forEach(x => x.setAttribute("aria-selected", x.dataset.th === theme));
-  });
+    <p class="mute" style="margin:14px 0 6px">${t("theme.h")}</p><div class="seg" role="tablist">${THEMES.map(x => `<button type="button" role="tab" data-th="${x}" aria-selected="${x === theme}">${t("theme." + x)}</button>`).join("")}</div>
+    ${bn ? `<label class="row" style="margin-top:14px;gap:8px;cursor:pointer"><input type="checkbox" id="vsNotif" ${bnOn ? "checked" : ""}><span class="sp"><b>${t("brNotif.h")}</b><span class="mute" style="display:block;font-size:12px">${t("brNotif.p")}</span></span></label>` : ""}</div>`;
+  const wire = pop => {
+    pop.querySelectorAll("[data-th]").forEach(b => b.onclick = () => {
+      theme = b.dataset.th; try { localStorage.setItem("kg.theme", theme); } catch {}
+      applyTheme(); pop.querySelectorAll("[data-th]").forEach(x => x.setAttribute("aria-selected", x.dataset.th === theme));
+    });
+    const cb = pop.querySelector("#vsNotif");
+    if (cb) cb.onchange = async () => {
+      if (!cb.checked) { try { localStorage.setItem("kg.brNotif", "0"); } catch {} return; }
+      const p = Notification.permission === "granted" ? "granted" : await Notification.requestPermission().catch(() => "denied");
+      if (p !== "granted") { cb.checked = false; toast("err|" + t("brNotif.denied")); return; }
+      try { localStorage.setItem("kg.brNotif", "1"); } catch {}
+    };
+  };
   sheet(body(), wire);
 }
 document.addEventListener("click", e => { if (e.target.closest && e.target.closest("[data-view-set]")) viewSet(); });
@@ -99,9 +111,9 @@ function sideHtml(on) {
   return `<nav class="side" aria-label="KidGuard"><div class="brand"><span class="badge">${ic("shield")}</span>KidGuard</div>
     ${L.length > 1 ? `<button type="button" class="nav${on === "ov" ? " on" : ""}" id="sideOv">${ic("users")} ${t("nav.family")}</button>` : ""}
     ${L.length ? `<div class="slab">${t("nav.kids")}</div>${kidsH}` : ""}
-    ${APP || onLan() ? `<button type="button" class="nav" id="sideAdd">${ic("plus")} ${t("addKid")}</button>` : ""}
+    ${!LOCAL ? `<button type="button" class="nav" id="sideAdd">${ic("plus")} ${t("addKid")}</button>` : ""}
     ${cur && on !== "ov" ? `<div class="slab">${esc(cur.name)}</div>${NAV.filter(([id]) => navOk(id)).map(([id, i]) => `<button type="button" class="nav${tab === id ? " on" : ""}" data-tab="${id}" ${tab === id ? 'aria-current="page"' : ""}>${ic(i)} ${t("tab." + id)}${id === "home" && reqN() ? `<span class="n">${reqN()}</span>` : ""}</button>`).join("")}` : ""}
-    <div class="foot">${langSel("lang2")}${themeBtn()}</div></nav>`;
+    <div class="foot">${langSel("lang2")}${!LOCAL ? `<button type="button" class="rb" id="sideAuth" aria-label="${esc(t("auth.h"))}" title="${esc(t("auth.h"))}">${ic("user")}</button>` : ""}${themeBtn()}</div></nav>`;
 }
 function wireSide(root) {
   const L = kidList();
@@ -110,6 +122,7 @@ function wireSide(root) {
   const s = root.querySelector("#sideKid"); if (s) s.onchange = () => go(L[+s.value]);
   const o = root.querySelector("#sideOv"); if (o) o.onclick = () => { if (ov) return; screenStop(); earStop(); overview(L, APP || onLan() ? appBoot : () => listScreen(L)); };
   const a = root.querySelector("#sideAdd"); if (a) a.onclick = () => { gen++; clearInterval(timer); screenStop(); earStop(); cur = null; ov = null; addScreen(); };
+  const au = root.querySelector("#sideAuth"); if (au) au.onclick = () => auth.modal();
 }
 const bnavHtml = () => `<nav class="bnav" aria-label="${esc(t("nav.main"))}">${BNAV.map(([id, i]) => { const on = id === "more" ? MORE_TABS.has(tab) : tab === id;
   return `<button type="button" data-tab="${id}" class="${on ? "on" : ""}" ${on ? 'aria-current="page"' : ""}><b>${ic(i)}${id === "home" && reqN() ? `<span class="n">${reqN()}</span>` : ""}</b><span>${t(id === "more" ? "nav.more" : "tab." + id)}</span></button>`; }).join("")}</nav>`;
@@ -187,6 +200,7 @@ function moreParts() {
     general: `<div class="sec">${t("set.general")}</div><div class="list">${[li("sup", "message-square", t("more.supS")),
       L.length > 1 && !LOCAL ? navRow('id="moreOv"', "users", t("nav.family"), t("ovN", L.length)) : "",
       !LOCAL && (APP || kids.length > 1 || cur.via === "relay") ? navRow('id="moreList"', "list", t("list")) : "",
+      !LOCAL ? navRow('id="moreAuth"', "user", t("auth.h"), (auth.get() || {}).username || t("auth.in")) : "",
       APP ? navRow('id="moreApp"', "settings", t("au.h")) : ""].join("")}</div>${APP ? "" : `<div class="card row">${langSel()}<span class="sp"></span>${themeBtn()}</div>`}`,
   };
 }
@@ -195,6 +209,7 @@ function moreWire(b) {
   b.querySelectorAll("[data-go]").forEach(x => x.onclick = () => goTab(x.dataset.go));
   if ($("#moreOv")) $("#moreOv").onclick = () => { screenStop(); earStop(); overview(L, APP || onLan() ? appBoot : () => listScreen(L)); };
   if ($("#moreApp")) $("#moreApp").onclick = () => goAppSettings();
+  if ($("#moreAuth")) $("#moreAuth").onclick = () => auth.modal();
   if ($("#moreList")) $("#moreList").onclick = () => { goList(); navDown(0); };
 }
 function moreTab(b) {

@@ -268,6 +268,9 @@ class LogicTest {
         assertTrue(Logic.allowedRequest("[]", "https://kidguard.me.workers.dev", "POST", "/p/123456/join"))
         assertFalse(Logic.allowedRequest("[]", "https://kidguard.me.workers.dev", "GET", "/c/0123456789abcdef/state"))
         assertFalse(Logic.allowedRequest("[]", "http://evil.example", "POST", "/p/inv"))
+        assertTrue(Logic.allowedRequest("[]", Logic.DEFAULT_RELAY, "POST", "/auth/login"))
+        assertTrue(Logic.allowedRequest("[]", Logic.DEFAULT_RELAY, "GET", "/auth/kids"))
+        assertFalse(Logic.allowedRequest("[]", "http://evil.example", "POST", "/auth/login"))
     }
 
     @Test fun lanKidRelayFallbackAllowed() {

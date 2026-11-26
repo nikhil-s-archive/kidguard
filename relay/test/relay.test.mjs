@@ -820,4 +820,22 @@ ck("a listen while the camera is on 409 busy",(await C("POST",{op:"offer",id:"a3
 x=await (await C("POST",{op:"end",id:"a2".repeat(8),why:"screen off"})).json();ck("cam end keeps the camera why",x.call&&x.call.st==="end"&&x.call.why==="screen off");
 x=await (await C("POST",{op:"offer",id:"a4".repeat(8),sdp:"v=0",kind:"cam",face:"sideways"})).json();ck("cam face clamped to front, snd false",x.call&&x.call.face==="front"&&x.call.snd===false);
 await C("POST",{op:"end",id:"a4".repeat(8)});}
+{ // Parent accounts: register, login, sync kids, change password, logout
+  const A=(p,m,b,u,t)=>fetch(`${B}/auth${p}`,{method:m,headers:{"content-type":"application/json",...(u?{"x-kg-user":u}:{}),...(t?{"x-kg-auth":t}:{})},body:b?JSON.stringify(b):undefined});
+  const kid1={id:"0123456789abcdef",token:"ab".repeat(24),name:"An",via:"relay",target:B.replace("http://","https://")};
+  let r=await A("/register","POST",{username:"Parent1",password:"secret12",kids:[kid1]});
+  ck("auth register 200",r.status===200);
+  let j=await r.json();ck("auth register token + kids",/^[0-9a-f]{48}$/.test(j.token)&&j.kids.length===1&&j.kids[0].id===kid1.id);
+  ck("auth duplicate 409",(await A("/register","POST",{username:"parent1",password:"secret12"})).status===409);
+  ck("auth wrong pw 401",(await A("/login","POST",{username:"parent1",password:"wrongpw"})).status===401);
+  r=await A("/login","POST",{username:"parent1",password:"secret12"});ck("auth login 200",r.status===200);
+  const lj=await r.json();ck("auth login returns kids",lj.kids.length===1&&lj.kids[0].name==="An");
+  const kid2={id:"fedcba9876543210",token:"cd".repeat(24),name:"Bo",via:"relay",target:B.replace("http://","https://")};
+  r=await A("/kids","PUT",{kids:[kid1,kid2]},"parent1",lj.token);ck("auth put kids 200",r.status===200);
+  r=await A("/kids","GET",null,"parent1",j.token);ck("auth other browser gets synced kids",r.status===200&&(await r.json()).kids.length===2);
+  r=await A("/password","POST",{oldPassword:"secret12",newPassword:"newpass12"},"parent1",lj.token);ck("auth chg pw 200",r.status===200);
+  ck("auth old session revoked on pw change",(await A("/kids","GET",null,"parent1",j.token)).status===401);
+  r=await A("/logout","POST",{},"parent1",lj.token);ck("auth logout 200",r.status===200);
+  ck("auth logged out token 401",(await A("/kids","GET",null,"parent1",lj.token)).status===401);
+}
 console.log(pass,"pass",fail,"fail");process.exit(fail?1:0);

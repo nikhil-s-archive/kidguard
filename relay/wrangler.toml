@@ -23,6 +23,11 @@ class_name = "Gate"
 name = "WATCH"
 class_name = "Watch"
 
+# Parent accounts (cross-browser login + synced kids list)
+[[durable_objects.bindings]]
+name = "ACCOUNT"
+class_name = "Account"
+
 # SQLite-backed Durable Objects run on the Workers free plan
 [[migrations]]
 tag = "v1"
@@ -35,6 +40,10 @@ new_sqlite_classes = ["Gate"]
 [[migrations]]
 tag = "v3"
 new_sqlite_classes = ["Watch"]
+
+[[migrations]]
+tag = "v4"
+new_sqlite_classes = ["Account"]
 
 # Per-IP rate limit on every path but "/" and /tg (free plan). Stops a single client looping random ids or junk paths;
 # /w and /p check it too. Measured per IP and 10 s (2026-11-20, audit asked for ~30): page refresh 8 s (relay) + overview

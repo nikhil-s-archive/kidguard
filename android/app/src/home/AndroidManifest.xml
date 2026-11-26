@@ -40,6 +40,7 @@
         <!-- hands the layout to KidGuard once when its launcher is turned on (same signer only, checked in code) -->
         <provider android:name=".HomeExport" android:authorities="dev.kidguard.home.export" android:exported="true" />
         <activity android:name=".MainActivity" tools:node="remove" />
+        <activity-alias android:name=".LauncherIcon" tools:node="remove" />
         <activity android:name=".LockActivity" tools:node="remove" />
         <activity android:name=".ProvisioningModeActivity" tools:node="remove" />
         <activity android:name=".PolicyComplianceActivity" tools:node="remove" />

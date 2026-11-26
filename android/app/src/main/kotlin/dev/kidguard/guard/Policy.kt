@@ -69,7 +69,7 @@ object Policy {
 
     /** Restrictions + self-protection + the permissions the guard needs. Safe to call again and again. */
     fun apply(ctx: Context, r: Rules) {
-        if (!isOwner(ctx)) { runCatching { LauncherSafe.apply(ctx, r) }; return }   // non-owner: only the user's own HOME choice (local opt-in / parent rule)
+        if (!isOwner(ctx)) { runCatching { LauncherSafe.apply(ctx, r); LauncherSafe.syncAppIcon(ctx, r) }; return }   // non-owner: only the user's own HOME choice (local opt-in / parent rule)
         val d = dpm(ctx); val a = admin(ctx)
         runCatching { savePrior(ctx, r) }.onFailure { Log.w(TAG, "save prior", it) }
         runCatching {
@@ -107,7 +107,7 @@ object Policy {
         for (p in perms) runCatching {
             d.setPermissionGrantState(a, ctx.packageName, p, DevicePolicyManager.PERMISSION_GRANT_STATE_GRANTED)
         }.onFailure { Log.w(TAG, "grant $p", it) }
-        runCatching { LauncherSafe.apply(ctx, r) }.onFailure { Log.w(TAG, "launcher", it) }   // v0.9.9 kid launcher (HOME)
+        runCatching { LauncherSafe.apply(ctx, r); LauncherSafe.syncAppIcon(ctx, r) }.onFailure { Log.w(TAG, "launcher", it) }   // v0.9.9 kid launcher (HOME)
     }
 
     /** The phone-wide reason the support message was last written for (Guard.tick feeds it through [noteNow]). */
@@ -711,7 +711,7 @@ object Policy {
         runCatching { d.setDeviceOwnerLockScreenInfo(a, null) }
         removeAccEntry(ctx); AccPause.clear(ctx); VpnPause.clear(ctx); DevOpts.clearPause(ctx)   // a bank-app pause must not outlive us
         // kid launcher: our persistent HOME goes and the component is disabled before Device Owner does (else HOME stays ours)
-        runCatching { LauncherSafe.off(ctx, goHome = true) }.onFailure { Log.w(TAG, "launcher off", it) }
+        runCatching { LauncherSafe.off(ctx, goHome = true); LauncherSafe.syncAppIcon(ctx) }.onFailure { Log.w(TAG, "launcher off", it) }
         // the mic was granted by us, not by the child: take it back and hand the switch to the user
         // the other grants (location, notifications) stay granted but the user can change them again
         for (p in listOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION, "android.permission.ACCESS_BACKGROUND_LOCATION",
@@ -777,7 +777,7 @@ object Policy {
         removeAccEntry(ctx); AccPause.clear(ctx); VpnPause.clear(ctx); DevOpts.clearPause(ctx)   // a bank-app pause must not outlive us
         runCatching { Update.forget(ctx) }   // a downloaded update.apk / update.part
         NotifDots.setOn(ctx, false)
-        runCatching { LauncherSafe.off(ctx, goHome = true) }   // only owner mode can turn it on, but never leave it behind
+        runCatching { LauncherSafe.off(ctx, goHome = true); LauncherSafe.syncAppIcon(ctx) }   // only owner mode can turn it on, but never leave it behind
         runCatching { Acc.running?.disableSelf() }
         clearLost(s)
         s.clearTokens()

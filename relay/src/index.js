@@ -5,7 +5,7 @@
 // "Parents"); the phone's token opens the parent routes only while no parent has one (old links / old pages).
 // JSON only (plan B, docs/decisions/remote.md 2026-11-18): no page or files; the page lives on the website and calls in with
 // CORS. Command types are short codes (docs/protocol.md "Command codes"): no feature names in this bundle.
-import { createHash } from "node:crypto";
+import { createHash, scryptSync, timingSafeEqual } from "node:crypto";
 import { quietStep, QUIET_ALERT } from "./quiet.js";
 
 const MAX_BODY = 256 * 1024, MAX_DEVICE = 32 * 1024, MAX_LOGDAY = 100 * 1024, KEEP_LOGDAYS = 4;
@@ -131,6 +131,7 @@ async function route(req, env) {
   if (th) return tgHook(req, env, th[1]);
   if (url.pathname === "/w/new" || /^\/w\/\d{6}$/.test(url.pathname)) return watchRoute(req, env, url);
   if (/^\/p\/(new|inv|\d{6}|[0-9a-f]{16})(\/(join|reply|result))?$/.test(url.pathname)) return pairRoute(req, env, url);
+  if (/^\/auth\/(register|login|logout|kids|password)$/.test(url.pathname)) return authRoute(req, env, url);
   // per-IP limit before the path check too (audit 2026-11-20): a scanner looping junk paths gets 429 like one looping ids.
   // It can't make those requests free (every call is a Worker invocation; only a WAF rule could), but none of them reaches
   // a Durable Object or storage. Kept at 150 / 10 s: wrangler.toml has the measured family traffic.
@@ -1792,4 +1793,108 @@ async function tgHook(req, env, key) {
   const j = await r.json().catch(() => ({}));
   if (!j.ok && m) await tgSend(env, chat, TGM.vi.help + "\n" + TGM.en.help);
   return ok();
+}
+
+// --- Parent accounts: cross-browser login + synced kids list ---
+const AUTH_PER_DAY = 20, AUTH_TTL = 30 * 86400e3, AUTH_SESS = 10, AUTH_KIDS = 30;
+const AUTH_USER = /^[a-z0-9][a-z0-9._@-]{2,63}$/;
+const hashPw = (pw, salt) => scryptSync(String(pw), String(salt), 32).toString("hex");
+const eqHex = (a, b) => typeof a === "string" && typeof b === "string" && a.length === b.length && timingSafeEqual(Buffer.from(a, "hex"), Buffer.from(b, "hex"));
+const cleanKids = (list) => {
+  if (!Array.isArray(list)) return null;
+  const out = [];
+  for (const x of list.slice(0, AUTH_KIDS)) {
+    if (!isObj(x) || !/^[0-9a-f]{16}$/.test(String(x.id || "")) || !/^[0-9a-f]{48}$/.test(String(x.token || ""))) continue;
+    const t = String(x.target || "");
+    if (t && !/^https:\/\/[^/#?\s]+$/.test(t)) continue;
+    out.push({ id: x.id, token: x.token, name: String(x.name || "").replace(/[\u0000-\u001f]/g, "").slice(0, 30) || "Kid", via: "relay", ...(t ? { target: t } : {}), ...(x.own ? { own: 1 } : {}) });
+  }
+  return out;
+};
+async function authRoute(req, env, url) {
+  if (env.RL && !(await env.RL.limit({ key: req.headers.get("cf-connecting-ip") || "?" })).success) return json({ error: "slow down" }, 429);
+  if (!env.ACCOUNT) return json({ error: "not available" }, 501);
+  const op = url.pathname.slice(6);
+  const needGet = op === "kids" && req.method === "GET", needPut = op === "kids" && req.method === "PUT", needPost = op !== "kids" && req.method === "POST";
+  if (!needGet && !needPut && !needPost) return json({ error: "method" }, 405);
+  if (+(req.headers.get("content-length") || 0) > 32768) return json({ error: "too big" }, 413);
+  let body = null;
+  if (req.method !== "GET") {
+    try { body = await req.json(); } catch { return json({ error: "bad json" }, 400); }
+    if (!isObj(body)) return json({ error: "bad json" }, 400);
+  }
+  const user = String((body && body.username) || req.headers.get("x-kg-user") || "").trim().toLowerCase();
+  if (!AUTH_USER.test(user)) return json({ error: "bad username" }, 400);
+  if (op === "register" && env.GATE) {
+    const g = env.GATE.get(env.GATE.idFromName("auth:" + (netKey(req.headers.get("cf-connecting-ip")) || "?")));
+    const r = await g.fetch("https://gate/take?max=" + (+env.AUTH_PER_DAY || AUTH_PER_DAY));
+    if (r.status !== 200) return json({ error: "too many accounts from this network, try tomorrow", retryAt: +(await r.text()) || Date.now() + 3600e3 }, 429);
+  }
+  const stub = env.ACCOUNT.get(env.ACCOUNT.idFromName("u:" + user));
+  const hdrs = { "content-type": "application/json" };
+  const tok = req.headers.get("x-kg-auth") || "";
+  if (tok) hdrs["x-kg-auth"] = tok;
+  const r = await stub.fetch("https://acc/" + op, { method: req.method, headers: hdrs, ...(body ? { body: JSON.stringify({ ...body, username: user }) } : {}) });
+  return new Response(r.body, { status: r.status, headers: r.headers });
+}
+
+export class Account {
+  constructor(ctx) { this.s = ctx.storage; }
+  async fetch(req) {
+    const op = new URL(req.url).pathname.slice(1), now = Date.now();
+    const b = req.method === "GET" ? {} : await req.json().catch(() => ({}));
+    if (op === "register") {
+      if (await this.s.get("pw")) return json({ error: "account exists" }, 409);
+      const pw = String(b.password || "");
+      if (pw.length < 6 || pw.length > 128) return json({ error: "bad password" }, 400);
+      const salt = hexRand(16), hash = hashPw(pw, salt), token = hexRand(24), th = await sha256(token);
+      const kids = cleanKids(b.kids) || [];
+      await this.s.put({ user: b.username, pw: { salt, hash }, kids, sessions: [{ h: th, at: now, exp: now + AUTH_TTL }] });
+      return json({ token, username: b.username, kids });
+    }
+    const pwRec = await this.s.get("pw");
+    if (op === "login") {
+      if (!pwRec) return json({ error: "wrong credentials" }, 401);
+      const tr = (await this.s.get("try")) || { n: 0, lv: 0, until: 0 };
+      if (tr.until > now) return json({ error: "pin locked", retryAt: tr.until }, 429);
+      const pw = String(b.password || "");
+      if (pw.length < 6 || pw.length > 128 || !eqHex(hashPw(pw, pwRec.salt), pwRec.hash)) {
+        tr.n++; tr.at = now;
+        if (tr.n >= PIN_TRIES) { tr.until = now + Math.min(PIN_LOCK * 2 ** tr.lv, PIN_LOCK_MAX); tr.lv++; tr.n = 0; }
+        await this.s.put("try", tr);
+        return tr.until > now ? json({ error: "pin locked", retryAt: tr.until }, 429) : json({ error: "wrong credentials", left: PIN_TRIES - tr.n }, 401);
+      }
+      if (tr.n || tr.lv) await this.s.delete("try");
+      const token = hexRand(24), th = await sha256(token);
+      const sess = ((await this.s.get("sessions")) || []).filter(s => s.exp > now).slice(-(AUTH_SESS - 1));
+      sess.push({ h: th, at: now, exp: now + AUTH_TTL });
+      await this.s.put("sessions", sess);
+      return json({ token, username: (await this.s.get("user")) || b.username, kids: (await this.s.get("kids")) || [] });
+    }
+    const raw = req.headers.get("x-kg-auth") || "";
+    if (!/^[0-9a-f]{48}$/.test(raw)) return json({ error: "unauthorized" }, 401);
+    const th = await sha256(raw), sess = ((await this.s.get("sessions")) || []).filter(s => s.exp > now);
+    const idx = sess.findIndex(s => s.h === th);
+    if (idx < 0) return json({ error: "unauthorized" }, 401);
+    if (op === "logout") {
+      sess.splice(idx, 1); await this.s.put("sessions", sess);
+      return json({ ok: true });
+    }
+    if (op === "kids") {
+      if (req.method === "GET") return json({ username: (await this.s.get("user")) || "", kids: (await this.s.get("kids")) || [] });
+      const kids = cleanKids(b.kids);
+      if (!kids) return json({ error: "bad kids" }, 400);
+      await this.s.put("kids", kids);
+      return json({ ok: true, kids });
+    }
+    if (op === "password") {
+      const oldPw = String(b.oldPassword || ""), newPw = String(b.newPassword || "");
+      if (newPw.length < 6 || newPw.length > 128) return json({ error: "bad password" }, 400);
+      if (!pwRec || !eqHex(hashPw(oldPw, pwRec.salt), pwRec.hash)) return json({ error: "wrong credentials" }, 401);
+      const salt = hexRand(16), hash = hashPw(newPw, salt);
+      await this.s.put({ pw: { salt, hash }, sessions: [sess[idx]] });
+      return json({ ok: true });
+    }
+    return json({ error: "not found" }, 404);
+  }
 }

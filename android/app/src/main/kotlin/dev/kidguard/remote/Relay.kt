@@ -478,14 +478,14 @@ class Relay(private val g: Guard) {
         private const val WS_IDLE_ON = 5 * 60_000L
         private const val WS_IDLE_OFF = 15 * 60_000L
         /** The author's shared relay, on by default once a parent has paired (Store.defaultRelay). Also in ui/assets/core.js DEFAULT_RELAY. */
-        const val DEFAULT_URL = "https://kg-relay.99-hoangtran.workers.dev"
+        const val DEFAULT_URL = "https://kidguard-relay.nikhil-s-archive.workers.dev"
         /** the killed worker (docs/decisions/remote.md 2026-11-17): Store.defaultRelay moves a phone off it, same id/token */
         const val OLD_URL = "https://kidguard.99-hoangtran.workers.dev"
         /** The same worker on our own domain (2026-11-20): some networks filter *.workers.dev. Never stored: [base] swaps to it. */
         const val ALT_URL = "https://relay.kidguard.asia"
         /** True = the other name of the shared relay answers, this one did not (set by the sync loop, read by Files etc.). */
         @Volatile var useAlt = false
-        fun other(u: String): String? = when (u.trim().trimEnd('/')) { DEFAULT_URL -> ALT_URL; ALT_URL -> DEFAULT_URL; else -> null }
+        fun other(u: String): String? = when (u.trim().trimEnd('/')) { "https://kg-relay.99-hoangtran.workers.dev" -> ALT_URL; ALT_URL -> "https://kg-relay.99-hoangtran.workers.dev"; else -> null }
         /** The address to call for a stored relay url: the other name of the shared relay while [useAlt]. */
         fun base(stored: String): String { val u = stored.trim().trimEnd('/'); return if (useAlt) other(u) ?: u else u }
     }

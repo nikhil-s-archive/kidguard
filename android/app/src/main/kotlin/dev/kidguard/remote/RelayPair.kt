@@ -20,7 +20,7 @@ object RelayPairLogic {
     /** The relay URL to pair over: https only. */
     fun usable(url: String) = url.startsWith("https://", ignoreCase = true)
 
-    const val PAGE = "https://kidguard.asia/app/"   // the parent page on the website (also what /go serves)
+    const val PAGE = "https://kidguard.nikhil-s-archive.workers.dev/"   // the parent page on the website (also what /go serves)
 
     /**
      * The child screen's pairing QR (owner 2026-11-20: one QR for every way). When the code is offered on the relay: the

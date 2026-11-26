@@ -33,7 +33,7 @@ data class Summary(
 
 /** Everything that talks to the relay. Blocking: call inside Dispatchers.IO. Never logs the token. */
 object Net {
-    const val DEFAULT_RELAY = "https://kg-relay.99-hoangtran.workers.dev"
+    const val DEFAULT_RELAY = "https://kidguard-relay.nikhil-s-archive.workers.dev"
     const val OSM_UA = "KidGuardWear/0.1 (Wear OS parent app; https://kid-guard.pages.dev)"
     // shown in the parent page's watch list (relay keeps the last X-KG-Name of a watch token); ASCII: it is a header
     private val NAME = "Wear OS - " + android.os.Build.MODEL.filter { it in ' '..'~' }.take(30)

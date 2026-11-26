@@ -62,7 +62,18 @@ async function refresh1() {
     // another parent (or the child) changed the rules: reload unless we are mid-edit or saving, else a stale page would overwrite them
     else if ((nw.rev || 0) > (edit.rev || 0) && !saveT && !saveBusy && !busy && !saveFailed) { edit = norm(structuredClone(nw)); editBase = structuredClone(edit); lastSig = ""; }
   }
-  if (st && typeof seenFeed === "function") seenFeed(k, st);   // new notifications from the sync body (tab-seen.js)
+    if (st && typeof seenFeed === "function") seenFeed(k, st);   // new notifications from the sync body (tab-seen.js)
+    if (st && !APP && !LOCAL && "Notification" in window && Notification.permission === "granted" && (() => { try { return localStorage.getItem("kg.brNotif") === "1"; } catch { return false; } })()) {
+      const m = refresh._n || (refresh._n = new Map());
+      const ids = [...(st.requests || []).map(q => "r:" + q.id), ...(st.sos || []).map(s => "s:" + s.id), ...(st.chat || []).filter(c => c && c.from === "k").map(c => "c:" + (c.id || c.t))];
+      const prev = m.get(k.id);
+      if (prev) {
+        for (const q of st.requests || []) if (!prev.has("r:" + q.id)) new Notification(k.name, { body: t("req.title") });
+        for (const s of st.sos || []) if (!prev.has("s:" + s.id)) new Notification("SOS: " + k.name, { body: s.text || "" });
+        for (const c of st.chat || []) if (c && c.from === "k" && !prev.has("c:" + (c.id || c.t))) new Notification(k.name, { body: c.text || t("msg.h") });
+      }
+      m.set(k.id, new Set(ids));
+    }
   // redraw the tab only when what it shows changed and nobody is using a control (icons would reload, a select would close)
   const sig = st ? JSON.stringify([tab, st.rules && st.rules.rev, st.apps.map(a => [a.suspended, a.blocked, Math.floor(a.ms / 60000), a.bg, a.bgMine]),
     st.location && st.location.t, (st.log || []).length, ((st.log || []).slice(-1)[0] || {}).t, (st.track || []).length, Math.floor(st.usedMs / 60000), lastErr, cachedAt, viewDay,
@@ -256,6 +267,7 @@ document.addEventListener("change", confirmGate, true);
 // ui = element ids (a card id disables the whole card) shown disabled with the note + "Update the kid's phone".
 // New relay command or rule key ⇒ add it here: scripts/check-need.mjs fails otherwise (CI + build.sh).
 const NEED = [
+  { v: "0.9.78", rule: ["hideApp"], ui: ["f-ha"] },
   { v: "0.9.71", ui: ["camGo", "camNow"] },
   { v: "0.9.54", rule: ["dailySaved", "byDay"] },
   { v: "0.9.29",

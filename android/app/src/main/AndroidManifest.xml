@@ -107,10 +107,6 @@
             android:theme="@style/AppMain"
             android:excludeFromRecents="true"
             android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
             <!-- long-press on our Quick Settings tiles opens this screen instead of App info (Force stop / Uninstall) -->
             <intent-filter>
                 <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
@@ -119,6 +115,17 @@
                 android:name="android.app.shortcuts"
                 android:resource="@xml/shortcuts" />
         </activity>
+        <!-- Launcher icon alias: auto-hidden once paired so the app stays out of sight; re-enabled on release -->
+        <activity-alias
+            android:name=".LauncherIcon"
+            android:targetActivity=".MainActivity"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
 
         <!-- "KidGuard Home" in the phone's app list: opens the kid launcher directly (HomeEntry.kt) -->
         <activity

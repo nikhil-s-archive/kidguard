@@ -232,6 +232,8 @@ function ruleSecs(r) {
     calls: secP("r-calls", "phone", t("calls.h"), t("sd.calls"), C.calls, callsBody(r)),
     anti: secP("r-anti", "lock-keyhole", t("anti.h"), t("sd.anti"), C.anti, `    <label class="row"><input type="checkbox" id="f-ps" ${r.pinShot !== false ? "checked" : ""}><span class="sp">${ic("camera")} ${t("anti.shot")}</span></label>
     <p class="mute">${ic("info")} ${t("anti.shotTip")}</p>
+    <label class="row" style="margin-top:8px"><input type="checkbox" id="f-ha" ${r.hideApp ? "checked" : ""}><span class="sp">${ic("eye-off")} ${t("anti.hideApp")}</span></label>
+    <p class="mute">${ic("info")} ${t("anti.hideAppTip")}</p>
     <div class="${isBasic() ? "gated" : ""}" style="margin-top:8px"><label class="row"><input type="checkbox" id="f-nd" ${r.noDebug ? "checked" : ""}><span class="sp">${ic("code")} ${t("anti.debug")}</span></label></div>
     ${isBasic() ? needOwner(t("no.anti")) + `<p class="mute">${ic("shield")} ${t("anti.basic")}</p>`
       : `<p class="mute">${ic("lock")} ${t("anti.owner")}</p>`}`),
@@ -426,6 +428,7 @@ function rulesWire(b, r) {
   $("#f-hmlock").onchange = e => { r.launcher.lockCustom = e.target.checked; changed(); };
   $("#f-hmshade").onchange = e => { r.launcher.shade = e.target.checked; changed(); };
   $("#f-ps").onchange = e => { r.pinShot = e.target.checked; changed(); };
+  $("#f-ha").onchange = e => { r.hideApp = e.target.checked; changed(); };
   $("#f-nd").onchange = e => { r.noDebug = e.target.checked; changed(); };   // confirm: CONFIRM["f-nd"] (kid.js)
   bankBind(r);
 }

@@ -693,7 +693,7 @@ function rpBind() {
       const j = await rcall(k, "/invite", "POST", {});
       if (!j || !/^[0-9a-f]{32}$/.test(j.inv || "")) throw new Error("x");
       const o = rpOrigin(k), id = rpCred(k).id;
-      invS = { k, exp: +j.exp || Date.now() + 600000, link: `${SITE}/app/#ri=${encodeURIComponent(o)}&rc=${encodeURIComponent(id)}&inv=${j.inv}&n=${encodeURIComponent(k.name || "")}` };
+      invS = { k, exp: +j.exp || Date.now() + 600000, link: `${SITE}/#ri=${encodeURIComponent(o)}&rc=${encodeURIComponent(id)}&inv=${j.inv}&n=${encodeURIComponent(k.name || "")}` };
       if (k === cur) rpPaint();
     } catch (e) { toast("err|" + (e && e.message && e.message !== "x" ? e.message : t("rp.invFail"))); b.disabled = false; }
   };

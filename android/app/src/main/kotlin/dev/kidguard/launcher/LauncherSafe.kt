@@ -26,15 +26,24 @@ object LauncherSafe {
     fun safeUntil(ctx: Context): Long = prefs(ctx).getLong("safeUntil", 0)
     fun inSafeMode(ctx: Context): Boolean = System.currentTimeMillis() < safeUntil(ctx)
 
-    /** The launcher should be the home screen now. */
+    /** The launcher should be the home screen now. Disabled in kid flavor (never install home launcher). */
     fun wanted(ctx: Context, r: Rules): Boolean {
         val s = Store.of(ctx)
-        if (s.released) return false   // safe mode keeps the component: HomeActivity shows SafeHome instead (see [crashed])
-        if (Flavor.HOME) return true
-        if (Policy.isOwner(ctx)) return r.launcher.on
-        // no Device Owner: nothing can be forced (the user picks HOME in Settings), so KidGuard is ALWAYS in the HOME list;
-        // hiding it only locked people out (paired + rule off left no way to pick it). Safe mode / released still hide it.
-        return true
+        if (s.released) return false
+        return Flavor.HOME
+    }
+
+    /** Hide or show the KidGuard launcher icon per parent rule [Rules.hideApp] (always shown on release). */
+    fun syncAppIcon(ctx: Context, r: Rules = Store.of(ctx).rules) {
+        if (Flavor.HOME) return
+        val s = Store.of(ctx)
+        val want = if (!s.released && r.hideApp) PackageManager.COMPONENT_ENABLED_STATE_DISABLED else PackageManager.COMPONENT_ENABLED_STATE_ENABLED
+        val cn = ComponentName(ctx, "dev.kidguard.LauncherIcon")
+        val pm = ctx.packageManager
+        if (pm.getComponentEnabledSetting(cn) != want) {
+            runCatching { pm.setComponentEnabledSetting(cn, want, PackageManager.DONT_KILL_APP) }
+                .onFailure { Log.w(TAG, "syncAppIcon", it) }
+        }
     }
 
     private fun homeFilter() = IntentFilter(Intent.ACTION_MAIN).apply {

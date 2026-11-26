@@ -124,7 +124,7 @@ class Proxy(private val ctx: Context, val port: Int) {
         val other = Logic.otherRelay(target)
         val url = (if (altRelay && other != null) other else target) + rest + q
         val fwd = HashMap<String, String>()
-        for (h in listOf("X-KG-Token", "X-KG-Ticket", "X-KG-W", "X-KG-H", "X-KG-Name", "Content-Type")) r.header(h)?.let { fwd[h] = it }
+        for (h in listOf("X-KG-Token", "X-KG-Ticket", "X-KG-W", "X-KG-H", "X-KG-Name", "X-KG-Auth", "X-KG-User", "Content-Type")) r.header(h)?.let { fwd[h] = it }
         if (Logic.isFilesPath(rest)) return filesForward(r, url, fwd)
         if (r.method == "GET" && rest == "/api/listen") return listen(url, fwd)
         val cacheable = Logic.isStatePath(r.method, rest)

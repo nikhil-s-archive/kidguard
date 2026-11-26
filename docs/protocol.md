@@ -1801,3 +1801,14 @@ Owner decision: reading the child's content is allowed ONLY with clear disclosur
 - On demand, newest first, inbox + sent, 30 a page (max 50): LAN `GET /sms?before=<ms>&n=` = `{on, access, sms:[{id,t,from,text,out}], more}`; relay command `{type:"smsPull", fid:<16 hex>, before, n}` -> answer `ok` | `off` | `bad fid`, then the same JSON on the file channel (`kidguard-sms.json`) under `fid`. Text cut at 600 chars. The child's log gets one line per first page.
 - Word alerts: `Sms.tick` (Guard tick) checks new incoming SMS (after the moment the rule was seen on) against `watch.words` and raises the same `word` event as notifications (app "SMS"); throttled the same way.
 
+## Parent accounts (cross-browser login)
+- Durable Object `Account` (keyed by `"u:" + username.toLowerCase()`), routed under `/auth/*` on the relay worker.
+- `POST /auth/register { username, password, kids? }` -> `{ token, username, kids }`: `username` matches `^[a-z0-9][a-z0-9._@-]{2,63}$`, `password` 6..128 chars (scrypt with random 16-byte salt), `kids` validated up to 30 relay entries (`id`, `token`, `name`, `via: "relay"`, `target`, `own?`). Daily per-network cap via `Gate` (`AUTH_PER_DAY = 20`).
+- `POST /auth/login { username, password }` -> `{ token, username, kids }`: issues a 48-hex session token (30-day TTL, max 10 active sessions), brute-force lockout (5 misses = 15 min, doubling to 24 h).
+- Authenticated routes (headers `X-KG-User`, `X-KG-Auth`):
+  - `GET /auth/kids` -> `{ username, kids }`
+  - `PUT /auth/kids { kids }` -> `{ ok: true, kids }`
+  - `POST /auth/password { oldPassword, newPassword }` -> `{ ok: true }` (revokes other sessions)
+  - `POST /auth/logout {}` -> `{ ok: true }` (revokes current session)
+- Rule `hideApp` (boolean, default `false`): hides/shows KidGuard's launcher icon alias (`dev.kidguard.LauncherIcon`) on the child phone; always restored on `release`.
+

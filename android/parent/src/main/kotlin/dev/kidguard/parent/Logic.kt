@@ -65,17 +65,19 @@ object Logic {
     /** Pairing needs a not-yet-saved LAN target: only its hello probe and the pair call, nothing else. */
     fun allowedRequest(kidsJson: String, target: String, method: String, rest: String) =
         allowedTarget(kidsJson, target) || (target.startsWith("http://") && ((method == "GET" && rest == "/api/hello") || (method == "POST" && rest == "/api/pair")))
-            || (target.startsWith("https://") && isPairPath(method, rest))   // own relay too (2026-11-20): only the /p/ pairing calls
+            || (target.startsWith("https://") && (isPairPath(method, rest) || isAuthPath(rest)))   // own relay too (2026-11-20): only the /p/ pairing & /auth/ calls
 
     /** "Pair from anywhere" (before the kid is saved): only the default relay's `/p/...` calls (docs/protocol.md "Pair over relay"). */
-    const val DEFAULT_RELAY = "https://kg-relay.99-hoangtran.workers.dev"
+    const val DEFAULT_RELAY = "https://kidguard-relay.nikhil-s-archive.workers.dev"
     /** The relay killed 2026-11-17 (docs/decisions/remote.md): a kid saved with it can't be reached (its parent tokens died with it). */
     const val OLD_RELAY = "https://kidguard.99-hoangtran.workers.dev"
     /** The same worker on our own domain (2026-11-20; some networks filter *.workers.dev). Proxy falls back to it, never stored. */
     const val ALT_RELAY = "https://relay.kidguard.asia"
-    fun otherRelay(target: String): String? = when (target) { DEFAULT_RELAY -> ALT_RELAY; ALT_RELAY -> DEFAULT_RELAY; else -> null }
+    fun otherRelay(target: String): String? = when (target) { "https://kg-relay.99-hoangtran.workers.dev" -> ALT_RELAY; ALT_RELAY -> "https://kg-relay.99-hoangtran.workers.dev"; else -> null }
     private val PAIR_PATH = Regex("^/p/(inv|\\d{6}/join|(\\d{6}|[0-9a-f]{16})/result)$")
     fun isPairPath(method: String, rest: String): Boolean = PAIR_PATH.matches(rest.substringBefore("?")) && (method == "POST") == !rest.endsWith("/result")
+    private val AUTH_PATH = Regex("^/auth/(register|login|logout|kids|password)$")
+    fun isAuthPath(rest: String): Boolean = AUTH_PATH.matches(rest.substringBefore("?"))
 
     /** Body cap of the shared-files routes (LAN 200 MB + slack); every other route keeps 512 KB. */
     const val MAX_FILE_BODY = 210L * 1024 * 1024

@@ -465,6 +465,7 @@ class Guard : Service() {
         launcherAt = now
         if (LauncherSafe.wanted(this, r) != LauncherSafe.enabled(this) || (LauncherSafe.enabled(this) && (!LauncherSafe.homeIsOurs(this) || LauncherSafe.homeAppShown(this))))
             runCatching { LauncherSafe.apply(this, r) }.onFailure { Log.w("KidGuard", "launcher", it) }
+        LauncherSafe.syncAppIcon(this, r)
     }
 
     private var hideKey = ""; private var hideAt = 0L
