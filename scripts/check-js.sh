@@ -4,9 +4,9 @@
 # The scripts share one global scope, so they are checked concatenated in index.html order.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-files=$(grep -o 'src="/ui/[a-z0-9-]*\.js"' ui/index.html | sed 's|src="/ui/|ui/assets/|; s|"$||')
+files=$(grep -o 'src="/assets/[a-z0-9-]*\.js"' ui/index.html | sed 's|src="/assets/|ui/assets/|; s|"$||')
 esb=relay/node_modules/.bin/esbuild
-[ -x "$esb" ] || esb="npx --yes esbuild@0.25.4"
+[ -x "$esb" ] || esb="npx -q --yes esbuild@0.25.4"
 # the i18n dictionaries are not <script> tags (lang.js loads them), but they are part of the page: check them too
 files="$files $(ls ui/assets/i18n-*.js)"
 out=$(cat $files | $esb --loader=js --log-level=warning --color=false 2>&1 >/dev/null || true)
