@@ -16,7 +16,7 @@ class RelayPairLogicTest {
     }
 
     @Test fun onlyHttpsRelay() {
-        assertTrue(RelayPairLogic.usable("https://kidguard-relay.nikhil-s-archive.workers.dev"))
+        assertTrue(RelayPairLogic.usable("https://kg-relay.nikhil-s-archive.workers.dev"))
         assertTrue(!RelayPairLogic.usable("http://x"))
     }
 

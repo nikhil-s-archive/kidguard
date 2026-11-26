@@ -68,7 +68,7 @@ object Logic {
             || (target.startsWith("https://") && (isPairPath(method, rest) || isAuthPath(rest)))   // own relay too (2026-11-20): only the /p/ pairing & /auth/ calls
 
     /** "Pair from anywhere" (before the kid is saved): only the default relay's `/p/...` calls (docs/protocol.md "Pair over relay"). */
-    const val DEFAULT_RELAY = "https://kidguard-relay.nikhil-s-archive.workers.dev"
+    const val DEFAULT_RELAY = "https://kg-relay.nikhil-s-archive.workers.dev"
     /** The relay killed 2026-11-17 (docs/decisions/remote.md): a kid saved with it can't be reached (its parent tokens died with it). */
     const val OLD_RELAY = "https://kidguard.99-hoangtran.workers.dev"
     /** The same worker on our own domain (2026-11-20; some networks filter *.workers.dev). Proxy falls back to it, never stored. */

@@ -19,7 +19,7 @@ function parse(link) {
     });
     if (!/^[0-9a-f]{16}$/.test(h.c || "") || !h.k) return null;
     // plan B: the link opens the website (no page on the relay); its relay = r=, else the author's relay
-    const url = /^https:\/\/[^/#?]+$/.test(h.r || "") ? h.r : (m[1] === "https://kid-guard.pages.dev" || m[1] === "https://kidguard.asia" || m[1] === "https://kidguard.nikhil-s-archive.workers.dev") ? "https://kidguard-relay.nikhil-s-archive.workers.dev" : m[1];
+    const url = /^https:\/\/[^/#?]+$/.test(h.r || "") ? h.r : (m[1] === "https://kid-guard.pages.dev" || m[1] === "https://kidguard.asia" || m[1] === "https://kidguard.nikhil-s-archive.workers.dev") ? "https://kg-relay.nikhil-s-archive.workers.dev" : m[1];
     return { url, id: h.c, token: h.k, name: (h.n || "").slice(0, 20) || "Con" };
   } catch (e) {
     return null;
@@ -146,7 +146,7 @@ AppSettingsPage({
         }),
         TextInput({
           label: T.relay,
-          placeholder: "https://kidguard-relay.nikhil-s-archive.workers.dev",
+          placeholder: "https://kg-relay.nikhil-s-archive.workers.dev",
           value: st.getItem("relay") || "",
           subStyle: { color: C.mute, fontSize: "12px" },
           labelStyle: { fontSize: "15px", color: C.text, padding: "10px 0", borderTop: `1px solid ${C.line}` },

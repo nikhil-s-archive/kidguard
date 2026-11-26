@@ -226,7 +226,7 @@ const WIRE_NAME = Object.fromEntries(Object.entries(WIRE).map(([n, c]) => [c, n]
 const wireOut = (path, body) => path === "/cmd" && body && Object.hasOwn(WIRE, body.type) ? { ...body, type: WIRE[body.type] } : body;
 const wireIn = j => { for (const f of ["expired", "queue"]) if (j && Array.isArray(j[f])) j[f] = j[f].map(x => x && Object.hasOwn(WIRE_NAME, x.type) ? { ...x, type: WIRE_NAME[x.type] } : x); return j; };
 /** The author's shared relay, on by default on paired phones (Relay.DEFAULT_URL in the app). */
-const DEFAULT_RELAY = "https://kidguard-relay.nikhil-s-archive.workers.dev";
+const DEFAULT_RELAY = "https://kg-relay.nikhil-s-archive.workers.dev";
 // Plan B (docs/decisions/remote.md 2026-11-18): the relay is JSON only; a browser gets this page from the website (SITE /app/, /go)
 // and calls the relay cross-origin. RELAY = the relay of the link that opened it (#r=<https origin>), else the last one, else the author's.
 const SITE = "https://kidguard.nikhil-s-archive.workers.dev";

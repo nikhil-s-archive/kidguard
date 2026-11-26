@@ -1,5 +1,5 @@
 // Gate for the parent page's files (CI + build.sh). A new ui/assets file must be wired in ui/index.html:
-//   <script defer src="/ui/x.js"> (or the stylesheet <link>), or it 404s.
+//   <script defer src="/assets/x.js"> (or the stylesheet <link>), or it 404s.
 // (the phone and the parent app serve any ui/assets/<name>.(js|css) by pattern: Safety.uiAsset; the website copies the
 // folder: scripts/site-app.mjs. The relay serves no page since plan B 2026-11-18: it must import nothing from ui/.)
 // Also: every i18n key exists in both languages (a missing vi key shows English to a Vietnamese parent).
@@ -15,17 +15,17 @@ const errs = [];
 const files = readdirSync(root + "ui/assets").filter(f => /^[a-z0-9-]+\.(js|css)$/.test(f));
 for (const f of files) {
   // i18n-<code>.js are not tags: lang.js document.write()s the active one and loads the other on a language switch
-  if (!/^i18n-/.test(f) && !html.includes(`/ui/${f}"`)) errs.push(`${f}: no <script>/<link> in ui/index.html`);
+  if (!/^i18n-/.test(f) && !html.includes(`/assets/${f}"`)) errs.push(`${f}: no <script>/<link> in ui/index.html`);
 }
-for (const m of html.matchAll(/(?:src|href)="\/ui\/([^"]+)"/g)) if (!files.includes(m[1])) errs.push(`ui/index.html loads /ui/${m[1]}: no such file`);
+for (const m of html.matchAll(/(?:src|href)="\/assets\/([^"]+)"/g)) if (!files.includes(m[1])) errs.push(`ui/index.html loads /assets/${m[1]}: no such file`);
 
-const MAX_GLOBALS = 864, MAX_LETS = 70;   // 864: vrec (record live camera / screen, 2026-11-21)
+const MAX_GLOBALS = 865, MAX_LETS = 70;   // 865: parent login / browser features (2026-11-26)
 let lets = 0, globals = 0;
 // one top-level name per page: the scripts share globals, and a 2nd `function x` silently replaces the 1st
 // (INCIDENT 2026-11-17: chat's pendHtml(job) replaced shell.js's pendHtml(id, html): "NaN MB" under the bank list)
 {
   const seen = new Map();
-  for (const m of html.matchAll(/<script[^>]*src="\/ui\/([^"]+)"/g)) {
+  for (const m of html.matchAll(/<script[^>]*src="\/assets\/([^"]+)"/g)) {
     if (/^i18n-/.test(m[1]) || !files.includes(m[1])) continue;
     for (const d of read("ui/assets/" + m[1]).matchAll(/^(?:async\s+)?(?:function\*?\s+([A-Za-z_$][\w$]*)|(?:const|let|var|class)\s+([A-Za-z_$][\w$]*))/gm)) {
       const n = d[1] || d[2];
