@@ -485,7 +485,7 @@ class Relay(private val g: Guard) {
         const val ALT_URL = "https://relay.kidguard.asia"
         /** True = the other name of the shared relay answers, this one did not (set by the sync loop, read by Files etc.). */
         @Volatile var useAlt = false
-        fun other(u: String): String? = when (u.trim().trimEnd('/')) { "https://kg-relay.99-hoangtran.workers.dev" -> ALT_URL; ALT_URL -> "https://kg-relay.99-hoangtran.workers.dev"; else -> null }
+        fun other(u: String): String? = when (u.trim().trimEnd('/')) { DEFAULT_URL -> ALT_URL; ALT_URL -> DEFAULT_URL; else -> null }
         /** The address to call for a stored relay url: the other name of the shared relay while [useAlt]. */
         fun base(stored: String): String { val u = stored.trim().trimEnd('/'); return if (useAlt) other(u) ?: u else u }
     }
