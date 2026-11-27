@@ -127,9 +127,10 @@
             </intent-filter>
         </activity-alias>
 
-        <!-- "KidGuard Home" in the phone's app list: opens the kid launcher directly (HomeEntry.kt) -->
+        <!-- "KidGuard Home" in the phone's app list: disabled in kid flavor; enabled in home flavor -->
         <activity
             android:name=".HomeEntry"
+            android:enabled="false"
             android:exported="true"
             android:label="@string/home_app"
             android:icon="@mipmap/ic_home_app"

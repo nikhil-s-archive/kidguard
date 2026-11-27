@@ -36,6 +36,7 @@
     <application android:label="@string/home_app" android:icon="@mipmap/ic_home_app" android:roundIcon="@mipmap/ic_home_app"
         tools:replace="android:label,android:icon" tools:remove="android:usesCleartextTraffic">
         <activity android:name=".HomeActivity" android:enabled="true" tools:replace="android:enabled" />
+        <activity android:name=".HomeEntry" android:enabled="true" tools:replace="android:enabled" />
         <service android:name=".NotifDots" android:label="@string/home_app" tools:replace="android:label" />
         <!-- hands the layout to KidGuard once when its launcher is turned on (same signer only, checked in code) -->
         <provider android:name=".HomeExport" android:authorities="dev.kidguard.home.export" android:exported="true" />

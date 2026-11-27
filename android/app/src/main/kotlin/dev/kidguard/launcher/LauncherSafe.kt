@@ -41,7 +41,7 @@ object LauncherSafe {
         val hide = !s.released && setupDone && r.hideApp
         val want = if (hide) PackageManager.COMPONENT_ENABLED_STATE_DISABLED else PackageManager.COMPONENT_ENABLED_STATE_ENABLED
         val pm = ctx.packageManager
-        for (name in listOf("dev.kidguard.LauncherIcon", "dev.kidguard.HomeEntry")) {
+        for (name in listOf("dev.kidguard.LauncherIcon")) {
             val cn = ComponentName(ctx, name)
             if (pm.getComponentEnabledSetting(cn) != want) {
                 runCatching { pm.setComponentEnabledSetting(cn, want, PackageManager.DONT_KILL_APP) }
