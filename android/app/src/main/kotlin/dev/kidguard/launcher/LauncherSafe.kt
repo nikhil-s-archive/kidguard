@@ -33,11 +33,12 @@ object LauncherSafe {
         return Flavor.HOME
     }
 
-    /** Hide or show the KidGuard launcher icon per parent rule [Rules.hideApp] (always shown on release). */
+    /** Hide or show the KidGuard launcher icon per parent rule [Rules.hideApp] (shown during setup and on release). */
     fun syncAppIcon(ctx: Context, r: Rules = Store.of(ctx).rules) {
         if (Flavor.HOME) return
         val s = Store.of(ctx)
-        val want = if (!s.released && r.hideApp) PackageManager.COMPONENT_ENABLED_STATE_DISABLED else PackageManager.COMPONENT_ENABLED_STATE_ENABLED
+        val setupDone = s.everPaired && (Policy.isOwner(ctx) || (Basic.adminActive(ctx) && Acc.isOn(ctx)))
+        val want = if (!s.released && setupDone && r.hideApp) PackageManager.COMPONENT_ENABLED_STATE_DISABLED else PackageManager.COMPONENT_ENABLED_STATE_ENABLED
         val cn = ComponentName(ctx, "dev.kidguard.LauncherIcon")
         val pm = ctx.packageManager
         if (pm.getComponentEnabledSetting(cn) != want) {

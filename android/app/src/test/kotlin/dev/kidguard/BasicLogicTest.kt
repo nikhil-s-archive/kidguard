@@ -132,7 +132,10 @@ class BasicLogicTest {
     @Test fun appPermissionsPagesLocked() {
         assertTrue(BasicLogic.selfProtect("com.google.android.permissioncontroller", n("App permissions", "KidGuard", "Allowed", "Location", "Microphone")))
         assertTrue(BasicLogic.selfProtect("com.android.permissioncontroller", n("Quyền của ứng dụng", "KidGuard", "Đã cho phép", "Vị trí", "Micrô")))
+        assertTrue(BasicLogic.selfProtect("com.android.settings", n("Permissions", "KidGuard", "Allowed", "Camera")))
+        assertTrue(BasicLogic.selfProtect("com.android.settings", n("Quyền", "KidGuard", "Đã từ chối", "Vị trí")))
         assertTrue(BasicLogic.selfProtect("com.google.android.permissioncontroller", n("Location permission", "KidGuard", "Allow all the time", "Don't allow")))
+        assertTrue(BasicLogic.selfProtect("com.google.android.permissioncontroller", n("Microphone permission", "KidGuard", "Allow only while using the app", "Don't allow")))
         assertTrue(BasicLogic.selfProtect("com.google.android.permissioncontroller", n("Quyền truy cập micrô", "KidGuard", "Luôn hỏi", "Không cho phép")))
         // Location permission page is allowed when locPerm is not yet granted (child tapping "Allow all the time")
         assertFalse(BasicLogic.selfProtect("com.google.android.permissioncontroller", n("Location permission", "KidGuard", "Allow all the time", "Don't allow"),

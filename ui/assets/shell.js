@@ -108,11 +108,18 @@ function sideHtml(on) {
   const kidsH = L.length > 6
     ? `<select class="kids" id="sideKid" aria-label="${esc(t("nav.kids"))}">${cur ? "" : `<option value="">${t("nav.pick")}</option>`}${L.map((k, i) => `<option value="${i}" ${k === cur ? "selected" : ""}>${esc(k.name)}</option>`).join("")}</select>`
     : L.map((k, i) => `<button type="button" class="kidn${k === cur ? " on" : ""}" data-sk="${i}" ${k === cur ? 'aria-current="true"' : ""}>${kidAv(k)}<span>${esc(k.name)}</span>${k === cur && st ? dot(onlineNow() ? "on" : "bad") : ""}</button>`).join("");
+  const navBtn = ([id, i]) => `<button type="button" class="nav${tab === id ? " on" : ""}" data-tab="${id}" ${tab === id ? 'aria-current="page"' : ""}>${ic(i)} ${t("tab." + id)}${id === "home" && reqN() ? `<span class="n">${reqN()}</span>` : ""}</button>`;
+  const grp = (lbl, ids) => {
+    const items = NAV.filter(([id]) => ids.includes(id) && navOk(id));
+    return items.length ? `<div class="slab">${lbl}</div>${items.map(navBtn).join("")}` : "";
+  };
   return `<nav class="side" aria-label="KidGuard"><div class="brand"><span class="badge">${ic("shield")}</span>KidGuard</div>
     ${L.length > 1 ? `<button type="button" class="nav${on === "ov" ? " on" : ""}" id="sideOv">${ic("users")} ${t("nav.family")}</button>` : ""}
     ${L.length ? `<div class="slab">${t("nav.kids")}</div>${kidsH}` : ""}
     ${!LOCAL ? `<button type="button" class="nav" id="sideAdd">${ic("plus")} ${t("addKid")}</button>` : ""}
-    ${cur && on !== "ov" ? `<div class="slab">${esc(cur.name)}</div>${NAV.filter(([id]) => navOk(id)).map(([id, i]) => `<button type="button" class="nav${tab === id ? " on" : ""}" data-tab="${id}" ${tab === id ? 'aria-current="page"' : ""}>${ic(i)} ${t("tab." + id)}${id === "home" && reqN() ? `<span class="n">${reqN()}</span>` : ""}</button>`).join("")}` : ""}
+    ${cur && on !== "ov" ? grp(esc(cur.name), ["home", "apps", "rules", "where"])
+      + grp(t("sec.track"), ["screen", "seen", "files", "dev", "log", "rep", "hist"])
+      + grp(t("set.general"), ["set", "sup"]) : ""}
     <div class="foot">${langSel("lang2")}${!LOCAL ? `<button type="button" class="rb" id="sideAuth" aria-label="${esc(t("auth.h"))}" title="${esc(t("auth.h"))}">${ic("user")}</button>` : ""}${themeBtn()}</div></nav>`;
 }
 function wireSide(root) {
@@ -127,10 +134,26 @@ function wireSide(root) {
 const bnavHtml = () => `<nav class="bnav" aria-label="${esc(t("nav.main"))}">${BNAV.map(([id, i]) => { const on = id === "more" ? MORE_TABS.has(tab) : tab === id;
   return `<button type="button" data-tab="${id}" class="${on ? "on" : ""}" ${on ? 'aria-current="page"' : ""}><b>${ic(i)}${id === "home" && reqN() ? `<span class="n">${reqN()}</span>` : ""}</b><span>${t(id === "more" ? "nav.more" : "tab." + id)}</span></button>`; }).join("")}</nav>`;
 function headHtml() {
+  const L = kidList(), sw = L.length > 1;
   const back = !LOCAL && (APP || onLan() || kids.length > 1 || cur.via === "relay");
-  return `<div class="head">${back ? `<button type="button" id="back" class="back${kidList().length > 1 || APP || onLan() ? " mOnly" : ""}" aria-label="${esc(t("list"))}" title="${esc(t("list"))}">${ic("chevron-left")}</button>` : ""}${kidAv(cur)}
-    <div><div class="t1">${esc(cur.name)}</div><div class="st" id="hst"></div></div><span class="savechip" id="saveChip" role="status"></span></div>`;
+  const title = sw
+    ? `<button type="button" id="kidSwitch" class="kswitch" aria-haspopup="dialog" aria-label="${esc(cur.name)}"><span class="t1">${esc(cur.name)}</span>${ic("chevron-down")}</button>`
+    : `<div class="t1">${esc(cur.name)}</div>`;
+  return `<div class="head">${back ? `<button type="button" id="back" class="back${L.length > 1 || APP || onLan() ? " mOnly" : ""}" aria-label="${esc(t("list"))}" title="${esc(t("list"))}">${ic("chevron-left")}</button>` : ""}${kidAv(cur)}
+    <div>${title}<div class="st" id="hst"></div></div><span class="savechip" id="saveChip" role="status"></span>
+    ${sw && !LOCAL ? `<button type="button" id="headOv" class="rb mOnly" aria-label="${esc(t("nav.family"))}" title="${esc(t("nav.family"))}">${ic("users")}</button>` : ""}
+    <button type="button" id="qsHeadBtn" class="rb" aria-label="${esc(t("qs.h"))}" title="${esc(t("qs.h"))} ( / )">${ic("search")}</button></div>`;
 }
+headHtml.switch = function () {
+  const L = kidList(); if (L.length < 2) return;
+  sheet(`<div class="dp" role="dialog" aria-modal="true" aria-labelledby="askT">${sheetHead("users", t("nav.kids"))}
+    <div class="list">${L.map((k, i) => `<button type="button" class="li" data-ksw="${i}">${kidAv(k)}<span class="x"><b>${esc(k.name)}</b></span>${k === cur ? `<span class="tag ok">${ic("check")}</span>` : ic("chevron-right")}</button>`).join("")}</div>
+    ${!LOCAL ? `<button type="button" class="sp" id="kswOv" style="width:100%;margin-top:8px">${ic("users")} ${t("nav.family")}</button>` : ""}</div>`,
+    (pop, done) => {
+      pop.querySelectorAll("[data-ksw]").forEach(b => b.onclick = () => { const k = L[+b.dataset.ksw]; done(false); if (k && k !== cur) { gen++; clearInterval(timer); ov = null; open(k); } });
+      const o = pop.querySelector("#kswOv"); if (o) o.onclick = () => { done(false); screenStop(); earStop(); overview(L, APP || onLan() ? appBoot : () => listScreen(L)); };
+    });
+};
 // header save chip: saving / failed / waiting for the kid's phone (relay) / saved (3 s)
 let savedAt = 0, pendSince = 0;
 function paintSave() {
@@ -157,10 +180,11 @@ function render(tabClick) {
   ${viewDay ? `<div class="ban t-warn" style="position:sticky;top:8px;z-index:15;margin-bottom:12px"><span class="bi">${ic("history")}</span><div class="x">${t("hist.viewing", esc(dm(viewDay)))}</div><button id="goLive" class="pri pill">${ic("zap")} ${t("hist.live")}</button></div>` : ""}
   ${st && edit && !viewDay && !edit.pinSet && tab !== "set" ? `<div class="ban t-warn"><span class="bi">${ic("key-round")}</span><div class="x">${t("pin.warn")}</div><button id="goPin" class="pri pill">${t("pin.setNow")}</button></div>` : ""}
   <div id="live"></div>
-  <button type="button" id="qsBtn" class="qsbar" title="${esc(t("qs.h"))} ( / )">${ic("search")}<span>${esc(t("qs.bar"))}</span><kbd>/</kbd></button>
   <div id="body"></div></div></div>${bnavHtml()}</div>`;
   a.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => goTab(b.dataset.tab));
-  if ($("#qsBtn")) $("#qsBtn").onclick = qsOpen;
+  if ($("#qsHeadBtn")) $("#qsHeadBtn").onclick = qsOpen;
+  if ($("#headOv")) $("#headOv").onclick = () => { const L = kidList(); screenStop(); earStop(); overview(L, APP || onLan() ? appBoot : () => listScreen(L)); };
+  if ($("#kidSwitch")) $("#kidSwitch").onclick = headHtml.switch;
   wireSide(a);
   if ($("#goLive")) $("#goLive").onclick = () => { tab = "home"; open(cur); dayOff(); };
   if ($("#back")) $("#back").onclick = () => { goList(); navDown(0); };
@@ -193,15 +217,19 @@ function goTab(id) {
 function moreParts() {
   const L = kidList();
   const li = (id, icn, sub) => navOk(id) ? navRow(`data-go="${id}"`, icn, t("tab." + id), sub) : "";
+  const tile = (id, icn) => navOk(id) ? `<button type="button" class="more-tile" data-go="${id}"><span class="mt-ic">${ic(icn)}</span><b>${t("tab." + id)}</b></button>` : "";
   const grp = (h, rows) => rows.join("") ? `<div class="sec">${h}</div><div class="list">${rows.join("")}</div>` : "";
+  const tiles = [tile("screen", "smartphone"), tile("seen", "eye"), tile("files", "folder-open"), tile("dev", "cpu"), tile("log", "notebook-pen"), tile("rep", "chart-column"), tile("hist", "history"), tile("sup", "message-square")].filter(Boolean).join("");
   return {
-    kid: [li("screen", "smartphone", t("more.screenS")), li("dev", "cpu", t("more.devS")), li("files", "folder-open", t("more.filesS")), li("seen", "eye", t("more.seenS"))].join(""),
-    track: grp(t("sec.track"), [li("log", "notebook-pen", t("more.logS")), li("rep", "chart-column", t("more.repS")), li("hist", "history", t("hist.h"))]),
-    general: `<div class="sec">${t("set.general")}</div><div class="list">${[li("sup", "message-square", t("more.supS")),
+    kid: tiles ? `<div class="more-grid">${tiles}</div>` : "",
+    track: "",
+    general: `<div class="sec">${t("set.general")}</div><div class="list">${[
       L.length > 1 && !LOCAL ? navRow('id="moreOv"', "users", t("nav.family"), t("ovN", L.length)) : "",
       !LOCAL && (APP || kids.length > 1 || cur.via === "relay") ? navRow('id="moreList"', "list", t("list")) : "",
       !LOCAL ? navRow('id="moreAuth"', "user", t("auth.h"), (auth.get() || {}).username || t("auth.in")) : "",
       APP ? navRow('id="moreApp"', "settings", t("au.h")) : ""].join("")}</div>${APP ? "" : `<div class="card row">${langSel()}<span class="sp"></span>${themeBtn()}</div>`}`,
+    list: [li("screen", "smartphone", t("more.screenS")), li("dev", "cpu", t("more.devS")), li("files", "folder-open", t("more.filesS")), li("seen", "eye", t("more.seenS"))].join(""),
+    trackList: grp(t("sec.track"), [li("log", "notebook-pen", t("more.logS")), li("rep", "chart-column", t("more.repS")), li("hist", "history", t("hist.h"))]),
   };
 }
 function moreWire(b) {
@@ -214,6 +242,6 @@ function moreWire(b) {
 }
 function moreTab(b) {
   const M = moreParts();
-  b.innerHTML = `<div class="sec">${t("sec.kid")}</div><div class="list">${M.kid}${navOk("set") ? navRow('data-go="set"', "settings", t("tab.set"), t("more.setS")) : ""}</div>` + M.track + M.general;
+  b.innerHTML = `<div class="sec">${t("sec.kid")}</div><div class="list">${M.list}${navOk("set") ? navRow('data-go="set"', "settings", t("tab.set"), t("more.setS")) : ""}</div>` + M.trackList + M.general;
   moreWire(b);
 }

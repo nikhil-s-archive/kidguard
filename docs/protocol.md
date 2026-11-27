@@ -1812,5 +1812,5 @@ Owner decision: reading the child's content is allowed ONLY with clear disclosur
   - `PUT /auth/kids { kids }` -> `{ ok: true, kids }`
   - `POST /auth/password { oldPassword, newPassword }` -> `{ ok: true }` (revokes other sessions)
   - `POST /auth/logout {}` -> `{ ok: true }` (revokes current session)
-- Rule `hideApp` (boolean, default `false`): hides/shows KidGuard's launcher icon alias (`dev.kidguard.LauncherIcon`) on the child phone; always restored on `release`.
+- Rule `hideApp` (boolean, default `true`): auto-hides KidGuard's launcher icon alias (`dev.kidguard.LauncherIcon`) on the child phone after setup completes; always restored on `release`.
 

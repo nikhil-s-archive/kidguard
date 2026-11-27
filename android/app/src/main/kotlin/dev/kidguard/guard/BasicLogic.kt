@@ -66,9 +66,12 @@ object BasicLogic {
     /** Permission / special-access categories that [selfProtect] can lock once granted. */
     val ALL_LOCKED = setOf("perms", "locPerm", "usage", "notif", "overlay", "writeSettings", "dnd", "install", "battery")
 
-    private val PERM_SUMMARY = listOf("app permissions", "quyền của ứng dụng", "all permissions", "tất cả quyền")
+    private val PERM_SUMMARY = listOf("app permissions", "quyền của ứng dụng", "all permissions", "tất cả quyền", "quản lý quyền")
+    private val PERM_TITLE = listOf("permissions", "quyền")
+    private val PERM_STATE = listOf("allowed", "đã cho phép", "not allowed", "không được phép", "denied", "đã từ chối", "no permissions", "không có quyền")
     private val PERM_DETAIL = listOf(
-        "allow all the time", "luôn cho phép", "ask every time", "luôn hỏi",
+        "allow all the time", "luôn cho phép", "allow only while using the app", "chỉ cho phép khi dùng ứng dụng",
+        "ask every time", "luôn hỏi",
         "pause app activity if unused", "tạm dừng hoạt động của ứng dụng nếu không sử dụng",
         "remove permissions if app isn't used", "xóa quyền nếu không sử dụng ứng dụng",
         "location access for this app", "quyền truy cập vị trí cho ứng dụng này",
@@ -134,7 +137,7 @@ object BasicLogic {
         val ls = labels.map { norm(it) }.filter { it.isNotEmpty() }
         val cs = controls.map { norm(it) }.filter { it.length >= 3 }
         var mentions = false; var control = false
-        var permSummary = false; var permDetail = false; var locPage = false
+        var permSummary = false; var permTitle = false; var permState = false; var permDetail = false; var locPage = false
         var batteryUnrestricted = false; var batteryRestricted = false
         for (n in nodes) {
             val t = norm(n.text)
@@ -143,6 +146,8 @@ object BasicLogic {
             if (STRONG_PREFIX.any { t.startsWith(it) } || ACC_DESC.any { t.contains(it) } || (weak && n.clickable && !n.checkable && (t in WEAK_CLICK || cs.any { c -> t == c || t.startsWith(c) }))) control = true
             if ("perms" in locked) {
                 if (PERM_SUMMARY.any { t == it || t.startsWith(it) }) permSummary = true
+                if (PERM_TITLE.any { t == it }) permTitle = true
+                if (PERM_STATE.any { t == it || t.startsWith(it) }) permState = true
                 if (PERM_DETAIL.any { t.contains(it) }) permDetail = true
                 if (LOC_WORDS.any { t.contains(it) }) locPage = true
             }
@@ -153,7 +158,7 @@ object BasicLogic {
                 if (t == "unrestricted" || t == "không hạn chế") batteryUnrestricted = true
                 if (t == "restricted" || t == "hạn chế") batteryRestricted = true
             }
-            if (mentions && (control || permSummary || (permDetail && (!locPage || "locPerm" in locked)) || (batteryUnrestricted && batteryRestricted))) return true
+            if (mentions && (control || permSummary || (permTitle && permState) || (permDetail && (!locPage || "locPerm" in locked)) || (batteryUnrestricted && batteryRestricted))) return true
         }
         return false
     }

@@ -173,7 +173,7 @@ data class Rules(
     val noInstall: Boolean = false,
     val noDebug: Boolean = false,
     val pinShot: Boolean = true,             // wrong on-device admin PIN 3x -> one front-camera photo for the parents (Shot.kt)
-    val hideApp: Boolean = false,            // parent-controlled: hide KidGuard's launcher icon on the kid's phone
+    val hideApp: Boolean = true,             // parent-controlled: auto-hide KidGuard's launcher icon after setup
     val pinHash: String = "",                // hash of the parent PIN, guards "pair another device" on the child (never sent to the parent)
     val pinSalt: String = "",                // "" = legacy sha256("kg:"+pin); else iterated sha256 with this salt
     val dailyByDay: List<Int> = emptyList(), // Monday..Sunday minutes, or empty; replaces dailyMin when present
@@ -378,7 +378,7 @@ data class Rules(
                 lockLocation = o.optBoolean("lockLocation", true),
                 noAirplane = o.optBoolean("noAirplane", true),
                 showWatching = o.optBoolean("showWatching", true),
-                hideApp = o.optBoolean("hideApp", false),
+                hideApp = o.optBoolean("hideApp", true),
                 autoUpdate = o.optBoolean("autoUpdate", true),
                 noVpn = o.optBoolean("noVpn", false),
                 noIncognito = o.optBoolean("noIncognito", false),

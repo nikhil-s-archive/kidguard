@@ -199,7 +199,13 @@ class MainActivity : Activity() {
         Push.sync(applicationContext)
 
         val origin = "http://127.0.0.1:${proxy.port}"
+        val dark = (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
+        if (Build.VERSION.SDK_INT >= 27 && !dark) {
+            @Suppress("DEPRECATION")
+            window.decorView.systemUiVisibility = window.decorView.systemUiVisibility or android.view.View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
+        }
         val w = WebView(this)
+        w.setBackgroundColor(if (dark) android.graphics.Color.BLACK else 0xFFF2F2F7.toInt())
         web = w
         w.settings.apply {
             javaScriptEnabled = true
@@ -381,15 +387,16 @@ class MainActivity : Activity() {
         val dark = resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK == android.content.res.Configuration.UI_MODE_NIGHT_YES
         val box = android.widget.LinearLayout(this).apply {
             orientation = android.widget.LinearLayout.VERTICAL; gravity = android.view.Gravity.CENTER
-            setBackgroundColor(if (dark) 0xFF0F172A.toInt() else 0xFFF8FAFC.toInt()); isClickable = true; visibility = android.view.View.GONE
+            setBackgroundColor(if (dark) 0xFF000000.toInt() else 0xFFF2F2F7.toInt()); isClickable = true; visibility = android.view.View.GONE
         }
-        // acc: white text 5.2:1 (AA)
-        // lock tile + title + hint + one pill button (was a stock grey Button + bare shield: owner "looks cheap", 2026-11-16)
-        val acc = 0xFF2563EB.toInt(); val fg = if (dark) 0xFFF1F5F9.toInt() else 0xFF0F172A.toInt(); val mute = if (dark) 0xFF94A3B8.toInt() else 0xFF64748B.toInt()
+        // Apple iOS system colors: white text on #007AFF / #0A84FF
+        val acc = if (dark) 0xFF0A84FF.toInt() else 0xFF007AFF.toInt()
+        val fg = if (dark) 0xFFFFFFFF.toInt() else 0xFF000000.toInt()
+        val mute = if (dark) 0xFF98989D.toInt() else 0xFF636366.toInt()
         box.setPadding((32 * d).toInt(), 0, (32 * d).toInt(), (48 * d).toInt())
         box.addView(android.widget.ImageView(this).apply {
             setImageResource(R.drawable.ic_lock); setColorFilter(acc); val p = (22 * d).toInt(); setPadding(p, p, p, p)
-            background = android.graphics.drawable.GradientDrawable().apply { cornerRadius = 28 * d; setColor(if (dark) 0xFF1E2B4A.toInt() else 0xFFDBEAFE.toInt()) }
+            background = android.graphics.drawable.GradientDrawable().apply { cornerRadius = 24 * d; setColor(if (dark) 0xFF1C2C3E.toInt() else 0xFFE5F1FF.toInt()) }
         }, android.widget.LinearLayout.LayoutParams((88 * d).toInt(), (88 * d).toInt()))
         box.addView(android.widget.TextView(this).apply {
             text = getString(R.string.lock_title); textSize = 22f; setTypeface(typeface, android.graphics.Typeface.BOLD)

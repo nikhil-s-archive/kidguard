@@ -25,28 +25,94 @@ function newAppsCard(r) {
     ${L.length > 3 ? `<button type="button" class="lfoot" id="naMore">${t("na.more", L.length - 3)} ${ic("chevron-right")}</button>` : ""}</div>`;
 }
 function homeTab(b) {
-  const loc = st.location;
-  const locSub = loc && loc.t ? ago(loc.t) : t("none");
+  const r = edit || st.rules || {};
+  const reqs = !viewDay ? (st.requests || []).filter(q => !answered.has(q.id)) : [];
+  const reqHtml = reqs.map(q => reqCard(q, r)).join("") + (!viewDay ? newAppsCard(r) : "");
+  const nw = nowOf(r), nowTxt = nowText(nw);
+  const paused = !viewDay && +r.pausedUntil > Date.now();
+  const limitMin = +r.dailyMin || 0, bonusMin = r.bonus && r.bonus.day === st.day ? +r.bonus.min || 0 : 0;
+  const totalMin = limitMin ? limitMin + bonusMin : 0, pct = totalMin ? Math.min(100, Math.round(st.usedMs / (totalMin * 60000) * 100)) : 0;
+  const barCls = pct >= 100 ? " bad" : pct >= 85 ? " warn" : "";
+  const hero = `<div class="hero">
+    <div class="row"><span class="lab">${t("tab.home")}</span>${nowTxt ? `<span class="tag ${nw.why === "lost" ? "bad" : nw.why === "pass" ? "ok" : "warn"}">${nowTxt}</span>` : ""}<span class="sp"></span>${navOk("hist") ? `<button type="button" id="hmHist" class="hm-pill">${ic("history")} ${t("tab.hist")}</button>` : `<button type="button" id="hmLim" class="hm-pill">${ic("timer")} ${t("rules.segTime")}</button>`}</div>
+    <div class="big">${fmt(st.usedMs)}</div>
+    <div class="meta"><span>${totalMin ? t("limit") + ": " + fmt(totalMin * 60000) : t("noLimit")}</span>${totalMin ? `<span>${pct}%</span>` : ""}</div>
+    ${totalMin ? `<div class="bar${barCls}"><i style="width:${pct}%"></i></div>` : ""}
+    ${viewDay ? "" : `<div class="hm-acts">
+      <button type="button" id="hmPause" class="${paused ? "pausing" : "pri"}">${ic(paused ? "play" : "pause")} ${paused ? t("resume") : t("pause")}</button>
+      <button type="button" id="hmPlus15">${ic("plus")} 15m</button>
+    </div>`}
+  </div>`;
+  const unread = chatUnread();
+  const quick = viewDay ? "" : `<div class="quick" role="group" aria-label="${esc(t("now"))}">
+    <button type="button" id="lock" class="act tile"></button>
+    <button type="button" id="ring" class="act tile"></button>
+    <button type="button" id="loc" class="act tile"></button>
+    <button type="button" id="hmMsg" class="tile"><b>${ic("message-square")}${unread ? `<span class="n">${unread > 99 ? "99+" : unread}</span>` : ""}</b><span>${t("msg.tile")}</span></button>
+    <button type="button" id="moreAct" class="tile"><b>${ic("ellipsis")}</b><span>${t("nav.more")}</span></button>
+  </div><div id="strip"></div>`;
+  const loc = st.location, zone = loc && loc.lat != null ? scrZone(loc.lat, loc.lon) : "";
+  const locSub = loc && loc.t ? (zone ? zone + " · " + ago(loc.t) : ago(loc.t)) : t("none");
   const notifs = Array.isArray(st.notifs) ? st.notifs : [];
   const notifSub = notifs.length ? (notifs[0].title || notifs[0].app || t("hm.notifN", notifs.length)) : t("none");
   const scrSub = st.screenOn ? t("pc.on") : t("pc.off");
-  const card = (id, icon, title, sub, dis = false) => `<button type="button" id="${id}" class="hm-card"${dis ? " disabled" : ""}>
-    <span class="hm-ic">${ic(icon)}</span>
+  const card = (id, icn, title, sub, dis = false) => `<button type="button" id="${id}" class="hm-card"${dis ? " disabled" : ""}>
+    <span class="hm-ic">${ic(icn)}</span>
     <span class="hm-tx"><b>${esc(title)}</b><span>${esc(sub)}</span></span>
     <span class="hm-ch">${ic("chevron-right")}</span>
   </button>`;
-  b.innerHTML = `<div class="hm-grid" role="group" aria-label="${esc(t("tab.home"))}">
-    ${card("hmLoc", "map-pin", t("tab.where"), locSub)}
-    ${card("hmNotif", "bell", t("seen.nh"), notifSub, !navOk("seen"))}
-    ${card("hmScr", "smartphone", t("more.scr"), scrSub, !navOk("screen"))}
-    ${card("hmCam", "video", t("hm.camAudio"), t("cam.more"), viewDay)}
-  </div>
-  <div id="strip" style="margin-top:12px"></div>`;
+  const bedOn = !!(r.bedStart && r.bedEnd), schN = (r.schedules || []).filter(s => s.on !== false).length, dnsOn = !!r.safeDns;
+  const rulesStrip = `<div class="hm-rules" role="group" aria-label="${esc(t("tab.rules"))}">
+    <button type="button" class="hm-rchip ${bedOn ? "on" : "off"}" data-hr="r-night|time">${ic("moon")} ${bedOn ? `${esc(r.bedStart)}–${esc(r.bedEnd)}` : t("bed.h")}</button>
+    <button type="button" class="hm-rchip ${schN ? "on" : "off"}" data-hr="r-sch|time">${ic("book-open")} ${t("sch.h")}${schN ? ` (${schN})` : ""}</button>
+    <button type="button" class="hm-rchip ${dnsOn ? "on" : "off"}" data-hr="r-net|safe">${ic("shield")} ${t("dns.h").split(" (")[0]}</button>
+  </div>`;
+  const topApps = (st.apps || []).filter(x => x.ms > 0).slice(0, 4);
+  const topHtml = topApps.length ? `<div class="list" style="margin-top:12px"><div class="lhead"><h2>${ic("puzzle")} ${t("tab.apps")}</h2></div>${topApps.map(x => `<button type="button" class="app hm-app" data-ha="${esc(x.pkg)}">${icon(x)}<div class="nm"><b>${esc(x.label)}</b><span class="mute">${fmt(x.ms)}${x.suspended || x.blocked ? `<span class="tag bad">${reason(x.blocked)}</span>` : ""}</span></div>${ic("chevron-right")}</button>`).join("")}<button type="button" id="hmAllApps" class="lfoot">${t("tab.apps")} ${ic("chevron-right")}</button></div>` : "";
+  b.innerHTML = reqHtml + awayTip() + hero + quick
+    + `<div class="card" id="phoneCard" style="padding:0;margin-top:12px"></div>`
+    + `<div class="hm-grid" role="group" aria-label="${esc(t("tab.home"))}">
+        ${card("hmLoc", "map-pin", t("tab.where"), locSub)}
+        ${card("hmNotif", "bell", t("seen.nh"), notifSub, !navOk("seen"))}
+        ${card("hmScr", "smartphone", t("more.scr"), scrSub, !navOk("screen"))}
+        ${card("hmCam", "video", t("hm.camAudio"), t("cam.more"), viewDay)}
+      </div>`
+    + rulesStrip
+    + topHtml;
+  if (reqs.length) wireReq(b, st.day, false);
+  b.querySelectorAll("[data-naok]").forEach(x => x.onclick = async () => {
+    const p = x.dataset.naok; r.approved = [...new Set([...(r.approved || []), p])]; r.blocked = (r.blocked || []).filter(v => v !== p);
+    await putRules(cur, r).catch(e => toast("err|" + e.message)); render();
+  });
+  b.querySelectorAll("[data-nano]").forEach(x => x.onclick = async () => {
+    const p = x.dataset.nano; r.blocked = [...new Set([...(r.blocked || []), p])]; r.approved = (r.approved || []).filter(v => v !== p);
+    await putRules(cur, r).catch(e => toast("err|" + e.message)); render();
+  });
+  if ($("#naMore")) $("#naMore").onclick = () => goTab("apps");
+  if ($("#awayGo")) $("#awayGo").onclick = () => { goTab("set"); subOpen("s-relay"); };
+  if ($("#awayNo")) $("#awayNo").onclick = () => { setKidFlag(cur, "away", 1); render(); };
+  if ($("#hmPause")) $("#hmPause").onclick = () => {
+    if (paused) { r.pausedUntil = 0; putRules(cur, r).then(() => { toast("ok|" + t("resumed")); render(); }).catch(e => toast("err|" + e.message)); return; }
+    pickTime("pause", "", async until => { r.pausedUntil = until; await putRules(cur, r); cmd({ type: "lock" }, t("paused"), false); render(); });
+  };
+  if ($("#hmPlus15")) $("#hmPlus15").onclick = async () => {
+    try { const k = await grant(15); toast("ok|" + grantToast(k, edit, 15)); render(); } catch (e) { toast("err|" + e.message); }
+  };
+  if ($("#lock")) $("#lock").onclick = () => act("lock", () => cmd({ type: screenOff() ? "wake" : "lock" }, t(screenOff() ? "wake.done" : "locked"), false));
+  if ($("#ring")) $("#ring").onclick = () => ringOn() ? ringStop() : earOn() ? toast("warn|" + t("act.noRing")) : act("ring", () => cmd({ type: "ring" }, t("ring.sent"), [t("ring.ask"), t("ring.go")]).then(res => { if (res && res.result !== "queued") expect("ring", true, "ring"); return res; }));
+  if ($("#loc")) $("#loc").onclick = () => act("loc", () => cmd({ type: "locate" }, t("locating"), false).then(res => { if (res) locStart(); return res; }));
+  if ($("#hmMsg")) $("#hmMsg").onclick = () => msgSheet();
+  if ($("#moreAct")) $("#moreAct").onclick = () => moreSheet();
+  if ($("#hmHist")) $("#hmHist").onclick = () => goTab("hist");
+  if ($("#hmLim")) $("#hmLim").onclick = () => qsGo({ tab: "rules", sec: "r-day", seg: "time" });
+  b.querySelectorAll("[data-hr]").forEach(x => x.onclick = () => { const [sec, seg] = x.dataset.hr.split("|"); qsGo({ tab: "rules", sec, seg }); });
+  b.querySelectorAll("[data-ha]").forEach(x => x.onclick = () => goTab("apps"));
   $("#hmLoc").onclick = () => goTab("where");
   $("#hmNotif").onclick = () => { goTab("seen"); subOpen("seenNotif"); };
   $("#hmScr").onclick = () => goTab("screen");
   $("#hmCam").onclick = () => snapOpen(true);
-  actPaint();
+  if ($("#hmAllApps")) $("#hmAllApps").onclick = () => goTab("apps");
+  updateLive();
 }
 
 // device log lines "Lệnh: <type> → <result>" (the phone writes the prefix in Vietnamese, type/result as English codes): keys "cl.<type>", "cr.<result>".

@@ -334,7 +334,7 @@ function setTab(b) {
   const sysP = secP("s-sys", "sliders-horizontal", t("sys.h"), t("sd.sys"), null, `<div id="sysCard"></div>`);
   const phone = !isWide(), M = phone ? moreParts() : null;   // phones: the "Thêm" groups live here too (moreParts, shell.js)
   b.innerHTML = `<div id="rsx">
-  ${phone ? `<div class="sec">${t("sec.kid")}</div><div class="list sgl">${M.kid}${sysP}</div>${M.track}` : ""}
+  ${phone ? `${M.kid}<div class="sec">${t("sec.kid")}</div><div class="list sgl">${sysP}</div>` : ""}
   ${secGrp(t("set.security"), [secMix("s-sec", "key-round", t("mx.sec"), t("mx.secD"), [pinP, S.totp], pinP.chip), pairedP])}
   ${secGrp(t("set.conn"), [secMix("s-remote", "route", t("mx.remote"), t("mx.remoteD"), [tsCard(lan), relayP]), tgHtml(), watchCard(), aiCard()], "awaySec", lan ? `<p class="mute" style="margin:0 4px 10px">${t("away.cmp")}</p>` : "")}
   ${secGrp(phone ? t("sec.setup") : t("sec.kid"), [secMix("s-kid", "user", t("mx.kid"), t("mx.kidD"), [nameP, keepP, redoP, a2P], null), featCard(), updCard(), phone ? null : sysP, secMix("s-adv", "code", t("mx.adv"), t("mx.advD"), [devCard(), shCard()], null)])}
