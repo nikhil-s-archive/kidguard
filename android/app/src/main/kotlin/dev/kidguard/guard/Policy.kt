@@ -99,6 +99,7 @@ object Policy {
         val perms = mutableListOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
         if (Build.VERSION.SDK_INT >= 29) perms += Manifest.permission.ACCESS_BACKGROUND_LOCATION
         if (Build.VERSION.SDK_INT >= 33) perms += Manifest.permission.POST_NOTIFICATIONS
+        if (Build.VERSION.SDK_INT >= 31) perms += Manifest.permission.BLUETOOTH_CONNECT
         if (Build.VERSION.SDK_INT < 29) perms += Manifest.permission.WRITE_EXTERNAL_STORAGE   // parent's files -> Download/KidGuard (Files.kt); 29+ uses MediaStore
         if (!Flavor.HOME) perms += listOf(Manifest.permission.READ_CONTACTS, Manifest.permission.READ_CALL_LOG)   // call list + screening (Calls.kt)
         perms += Manifest.permission.RECORD_AUDIO   // "listen around"; the child is always told when it is used (Listen.kt)
@@ -715,7 +716,7 @@ object Policy {
         // the mic was granted by us, not by the child: take it back and hand the switch to the user
         // the other grants (location, notifications) stay granted but the user can change them again
         for (p in listOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION, "android.permission.ACCESS_BACKGROUND_LOCATION",
-            "android.permission.POST_NOTIFICATIONS", Manifest.permission.WRITE_EXTERNAL_STORAGE)) runCatching { d.setPermissionGrantState(a, ctx.packageName, p, DevicePolicyManager.PERMISSION_GRANT_STATE_DEFAULT) }
+            "android.permission.POST_NOTIFICATIONS", "android.permission.BLUETOOTH_CONNECT", Manifest.permission.WRITE_EXTERNAL_STORAGE)) runCatching { d.setPermissionGrantState(a, ctx.packageName, p, DevicePolicyManager.PERMISSION_GRANT_STATE_DEFAULT) }
         runCatching {
             d.setPermissionGrantState(a, ctx.packageName, Manifest.permission.RECORD_AUDIO, DevicePolicyManager.PERMISSION_GRANT_STATE_DENIED)
             d.setPermissionGrantState(a, ctx.packageName, Manifest.permission.RECORD_AUDIO, DevicePolicyManager.PERMISSION_GRANT_STATE_DEFAULT)

@@ -313,6 +313,7 @@ class Guard : Service() {
             if (!store.usageOffRaised && store.knownApps != null) {   // before the first app scan (fresh setup) nothing is raised yet; retried next tick
                 store.log(R.string.log_usage_off)   // inside the gate: it was logged every tick during a fresh setup
                 store.usageOffRaised = true
+                AutoGrant.soon()
                 runCatching { store.eventKey("tamper", "usageoff", R.string.ev_usage_off); relay?.kick() }
             }
             // posted once, not every tick: re-posting made ColorOS sound + pop it every few seconds and a swipe came back at once

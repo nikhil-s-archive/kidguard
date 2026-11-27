@@ -13,7 +13,7 @@ import android.app.Activity
 object SelfGate {
     fun free(act: Activity): Boolean {
         val s = Store.of(act)
-        return Policy.isOwner(act) || !s.everPaired || CmdGate.selfOpen(s.selfOpenUntil, System.currentTimeMillis())
+        return !s.everPaired || CmdGate.selfOpen(s.selfOpenUntil, System.currentTimeMillis())
     }
 
     fun run(act: Activity, u: Ui, then: () -> Unit) {

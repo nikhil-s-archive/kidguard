@@ -56,11 +56,35 @@ object BasicLogic {
         "gỡ cài đặt", "gỡ ứng dụng", "huỷ kích hoạt", "hủy kích hoạt", "tắt kích hoạt", "buộc dừng", "dừng ngay", "xoá ứng dụng", "xóa ứng dụng",
         "uninstall", "deactivate", "force stop", "force-stop", "turn off kidguard", "disable kidguard", "stop kidguard", "dừng kidguard", "tắt kidguard",
         "dùng kidguard", "use kidguard", "sử dụng kidguard", "dùng dịch vụ", "use service", "sử dụng dịch vụ",
+        "kidguard shortcut", "lối tắt kidguard",
     )
     /** Whole-text matches that are common words: counted as controls only when the node is clickable. */
     private val WEAK_CLICK = setOf("gỡ", "tắt", "dừng", "stop", "turn off", "off", "disable", "xoá", "xóa", "remove", "delete")
     /** Our accessibility service description (res acc_desc, each language), shown on its detail page where the child can switch it off. */
     private val ACC_DESC = listOf("cho bố mẹ xem màn hình", "lets parents see the screen")
+
+    /** Permission / special-access categories that [selfProtect] can lock once granted. */
+    val ALL_LOCKED = setOf("perms", "locPerm", "usage", "notif", "overlay", "writeSettings", "dnd", "install", "battery")
+
+    private val PERM_SUMMARY = listOf("app permissions", "quyền của ứng dụng", "all permissions", "tất cả quyền")
+    private val PERM_DETAIL = listOf(
+        "allow all the time", "luôn cho phép", "ask every time", "luôn hỏi",
+        "pause app activity if unused", "tạm dừng hoạt động của ứng dụng nếu không sử dụng",
+        "remove permissions if app isn't used", "xóa quyền nếu không sử dụng ứng dụng",
+        "location access for this app", "quyền truy cập vị trí cho ứng dụng này",
+        "microphone access for this app", "quyền truy cập micrô cho ứng dụng này",
+        "camera access for this app", "quyền truy cập máy ảnh cho ứng dụng này",
+    )
+    private val LOC_WORDS = listOf("location", "vị trí")
+    private val SPECIAL_LOCKS: List<Pair<String, List<String>>> = listOf(
+        "usage" to listOf("permit usage access", "allow usage tracking", "cho phép theo dõi sử dụng", "cho phép truy cập dữ liệu sử dụng"),
+        "notif" to listOf("allow notification access", "cho phép truy cập thông báo"),
+        "overlay" to listOf("allow display over other apps", "cho phép hiển thị trên các ứng dụng khác", "allow appear on top", "cho phép xuất hiện trên cùng"),
+        "writeSettings" to listOf("allow modifying system settings", "cho phép sửa đổi cài đặt hệ thống", "cho phép thay đổi cài đặt hệ thống"),
+        "dnd" to listOf("allow do not disturb", "cho phép không làm phiền"),
+        "install" to listOf("allow from this source", "cho phép từ nguồn này"),
+        "battery" to listOf("app battery usage", "mức sử dụng pin của ứng dụng", "battery optimization", "tối ưu hóa pin", "tối ưu hoá pin", "background restriction", "hạn chế chạy nền"),
+    )
 
     private fun norm(s: String) = Text.norm(s)
 
@@ -98,17 +122,38 @@ object BasicLogic {
      * Home flavor's app info, so the owner could not uninstall it). [controls]: the Settings app's own button texts in the
      * phone's language (Acc reads uninstall_text, force_stop... from its resources), on top of the vi/en lists.
      */
-    fun selfProtect(pkg: String, nodes: List<Node>, labels: Collection<String> = listOf("KidGuard"), controls: Collection<String> = emptyList(), weak: Boolean = true): Boolean {
+    fun selfProtect(
+        pkg: String,
+        nodes: List<Node>,
+        labels: Collection<String> = listOf("KidGuard"),
+        controls: Collection<String> = emptyList(),
+        weak: Boolean = true,
+        locked: Set<String> = ALL_LOCKED,
+    ): Boolean {
         if (!isSettingsPkg(pkg)) return false
         val ls = labels.map { norm(it) }.filter { it.isNotEmpty() }
         val cs = controls.map { norm(it) }.filter { it.length >= 3 }
         var mentions = false; var control = false
+        var permSummary = false; var permDetail = false; var locPage = false
+        var batteryUnrestricted = false; var batteryRestricted = false
         for (n in nodes) {
             val t = norm(n.text)
             if (t.isEmpty()) continue
             if (ls.any { names(t, it) }) mentions = true
             if (STRONG_PREFIX.any { t.startsWith(it) } || ACC_DESC.any { t.contains(it) } || (weak && n.clickable && !n.checkable && (t in WEAK_CLICK || cs.any { c -> t == c || t.startsWith(c) }))) control = true
-            if (mentions && control) return true
+            if ("perms" in locked) {
+                if (PERM_SUMMARY.any { t == it || t.startsWith(it) }) permSummary = true
+                if (PERM_DETAIL.any { t.contains(it) }) permDetail = true
+                if (LOC_WORDS.any { t.contains(it) }) locPage = true
+            }
+            for ((key, phrases) in SPECIAL_LOCKS) {
+                if (key in locked && phrases.any { t.contains(it) }) control = true
+            }
+            if ("battery" in locked) {
+                if (t == "unrestricted" || t == "không hạn chế") batteryUnrestricted = true
+                if (t == "restricted" || t == "hạn chế") batteryRestricted = true
+            }
+            if (mentions && (control || permSummary || (permDetail && (!locPage || "locPerm" in locked)) || (batteryUnrestricted && batteryRestricted))) return true
         }
         return false
     }

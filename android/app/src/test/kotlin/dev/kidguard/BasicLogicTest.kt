@@ -128,4 +128,34 @@ class BasicLogicTest {
         for (p in listOf("com.android.chrome", "dev.kidguard", "com.android.systemui", "com.zing.zalo"))
             assertFalse(p, BasicLogic.isSettingsPkg(p))
     }
+
+    @Test fun appPermissionsPagesLocked() {
+        assertTrue(BasicLogic.selfProtect("com.google.android.permissioncontroller", n("App permissions", "KidGuard", "Allowed", "Location", "Microphone")))
+        assertTrue(BasicLogic.selfProtect("com.android.permissioncontroller", n("Quyền của ứng dụng", "KidGuard", "Đã cho phép", "Vị trí", "Micrô")))
+        assertTrue(BasicLogic.selfProtect("com.google.android.permissioncontroller", n("Location permission", "KidGuard", "Allow all the time", "Don't allow")))
+        assertTrue(BasicLogic.selfProtect("com.google.android.permissioncontroller", n("Quyền truy cập micrô", "KidGuard", "Luôn hỏi", "Không cho phép")))
+        // Location permission page is allowed when locPerm is not yet granted (child tapping "Allow all the time")
+        assertFalse(BasicLogic.selfProtect("com.google.android.permissioncontroller", n("Location permission", "KidGuard", "Allow all the time", "Don't allow"),
+            locked = BasicLogic.ALL_LOCKED - "locPerm"))
+        // One-tap runtime grant dialog passes
+        assertFalse(BasicLogic.selfProtect("com.google.android.permissioncontroller", n("Allow KidGuard to access this device's location?", "While using the app", "Only this time", "Don't allow")))
+    }
+
+    @Test fun specialAccessAndBatteryLockedOnlyWhenGranted() {
+        assertTrue(BasicLogic.selfProtect("com.android.settings", n("Usage access", "KidGuard", "Permit usage access")))
+        assertTrue(BasicLogic.selfProtect("com.android.settings", n("Truy cập dữ liệu sử dụng", "KidGuard", "Cho phép theo dõi sử dụng")))
+        assertFalse(BasicLogic.selfProtect("com.android.settings", n("Usage access", "KidGuard", "Permit usage access"), locked = BasicLogic.ALL_LOCKED - "usage"))
+
+        assertTrue(BasicLogic.selfProtect("com.android.settings", n("Notification access", "KidGuard", "Allow notification access")))
+        assertFalse(BasicLogic.selfProtect("com.android.settings", n("Notification access", "KidGuard", "Allow notification access"), locked = BasicLogic.ALL_LOCKED - "notif"))
+
+        assertTrue(BasicLogic.selfProtect("com.android.settings", n("Display over other apps", "KidGuard", "Allow display over other apps")))
+        assertTrue(BasicLogic.selfProtect("com.android.settings", n("Modify system settings", "KidGuard", "Allow modifying system settings")))
+        assertTrue(BasicLogic.selfProtect("com.android.settings", n("Do Not Disturb access", "KidGuard", "Allow Do Not Disturb")))
+        assertTrue(BasicLogic.selfProtect("com.android.settings", n("Install unknown apps", "KidGuard", "Allow from this source")))
+
+        assertTrue(BasicLogic.selfProtect("com.android.settings", n("App battery usage", "KidGuard", "Unrestricted", "Optimized", "Restricted")))
+        assertTrue(BasicLogic.selfProtect("com.android.settings", n("KidGuard", "Không hạn chế", "Tối ưu hoá", "Hạn chế")))
+        assertFalse(BasicLogic.selfProtect("com.android.settings", n("App battery usage", "KidGuard", "Unrestricted", "Restricted"), locked = BasicLogic.ALL_LOCKED - "battery"))
+    }
 }

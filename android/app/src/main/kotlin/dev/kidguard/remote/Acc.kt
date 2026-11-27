@@ -61,6 +61,19 @@ class Acc : AccessibilityService() {
             main.removeCallbacks(shadeCheck); main.post(shadeCheck)
         }
         if (e.eventType == AccessibilityEvent.TYPE_WINDOWS_CHANGED && strips?.shown == true) { main.removeCallbacks(barCheck); main.postDelayed(barCheck, 150) }
+        if (e.eventType == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) {
+            val pkg = e.packageName?.toString()
+            if (pkg != null && pkg != packageName && protectOn() && BasicLogic.isSettingsPkg(pkg)) {
+                val now = android.os.SystemClock.elapsedRealtime()
+                if (now - lastContentScan >= 350) {
+                    lastContentScan = now
+                    scanPkg = pkg
+                    main.removeCallbacks(scan1)
+                    main.postDelayed(scan1, 100)
+                }
+            }
+            return
+        }
         if (e.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return
         val pkg = e.packageName?.toString() ?: return
         strips?.front(pkg)   // own gestures: full-screen mode for games
@@ -152,14 +165,17 @@ class Acc : AccessibilityService() {
         runCatching { am.appTasks.forEach { t -> runCatching { if (t.taskInfo.baseIntent.component?.className != HomeActivity::class.java.name) t.finishAndRemoveTask() } } }
     }
 
-    /** Basic mode (no Device Owner): bounce blocked apps and Settings pages that would remove KidGuard. Owner mode: no-op. */
+    /** Basic mode + Device Owner: bounce blocked apps (basic only) and Settings pages that would remove KidGuard or turn off permissions. */
     private fun basicGuard(pkg: String, cls: String? = null) {
-        if (!basicOn()) return
-        val reason = BasicLogic.bounceReason(pkg, packageName, blocked, prot)
-        if (reason != null) { bounceApp(this, pkg, reason); return }
-        // home lock without Device Owner: another launcher came up -> ours (not Recents: only a real HOME activity counts)
-        if (LauncherLock.on && LauncherLockLogic.otherHome(pkg, cls, packageName, homeActs())) { openOurHome(); return }
-        if (BasicLogic.isSettingsPkg(pkg) || (LauncherLock.on && LauncherLockLogic.isChooser(pkg, cls))) {
+        val basic = basicOn()
+        if (basic) {
+            val reason = BasicLogic.bounceReason(pkg, packageName, blocked, prot)
+            if (reason != null) { bounceApp(this, pkg, reason); return }
+            // home lock without Device Owner: another launcher came up -> ours (not Recents: only a real HOME activity counts)
+            if (LauncherLock.on && LauncherLockLogic.otherHome(pkg, cls, packageName, homeActs())) { openOurHome(); return }
+        }
+        if (!basic && !protectOn()) return
+        if (BasicLogic.isSettingsPkg(pkg) || (basic && LauncherLock.on && LauncherLockLogic.isChooser(pkg, cls))) {
             scanCls = cls
             // the page text is often not there yet when the event fires: look at 0.2 s, 0.8 s and 1.8 s
             main.removeCallbacks(scan1); main.removeCallbacks(scan2); main.removeCallbacks(scan3)
@@ -170,6 +186,7 @@ class Acc : AccessibilityService() {
 
     private var scanPkg = ""
     private var scanCls: String? = null
+    private var lastContentScan = 0L
     private val scan1 = Runnable { scan() }
     private val scan2 = Runnable { scan() }
     private val scan3 = Runnable { scan() }
@@ -214,26 +231,39 @@ class Acc : AccessibilityService() {
         }.getOrDefault(emptyList())
     }
 
+    private fun lockedPerms(): Set<String> = buildSet {
+        add("perms")
+        if (Basic.locationOk(this@Acc)) add("locPerm")
+        if (Usage.granted(this@Acc)) add("usage")
+        if (NotifDots.granted(this@Acc, fresh = true)) add("notif")
+        if (Settings.canDrawOverlays(this@Acc)) add("overlay")
+        if (Settings.System.canWrite(this@Acc)) add("writeSettings")
+        if (runCatching { getSystemService(NotificationManager::class.java).isNotificationPolicyAccessGranted }.getOrDefault(false)) add("dnd")
+        if (runCatching { packageManager.canRequestPackageInstalls() }.getOrDefault(false)) add("install")
+        if (Basic.batteryOk(this@Acc)) add("battery")
+    }
+
     private fun scan() {
-        if (!basicOn()) return
+        val basic = basicOn()
+        if (!basic && !protectOn()) return
         // nothing to protect before a parent pairs, and setup itself happens on these Settings pages (accessibility detail, autostart…)
         if (!Store.of(this).everPaired) return
         val root = runCatching { rootInActiveWindow }.getOrNull() ?: return
         val pkg = root.packageName?.toString() ?: return
-        if (pkg != scanPkg || !(BasicLogic.isSettingsPkg(pkg) || LauncherLockLogic.isChooser(pkg, scanCls))) return
+        if (pkg != scanPkg || !(BasicLogic.isSettingsPkg(pkg) || (basic && LauncherLock.on && LauncherLockLogic.isChooser(pkg, scanCls)))) return
         val labels = ourNames()
         val nodes = collectNodes(root, 300)
-        if (LauncherLock.on && LauncherLockLogic.homePicker(pkg, scanCls, nodes.map { it.text }, BasicLogic::isSettingsPkg)) {
+        if (basic && LauncherLock.on && LauncherLockLogic.homePicker(pkg, scanCls, nodes.map { it.text }, BasicLogic::isSettingsPkg)) {
             // the child may not pick another home app while the parent locks the home screen
             openOurHome(); whyClosed(R.string.acc_closed_home, R.string.bn_home_t, R.string.bn_home_b)
             val now = System.currentTimeMillis()
             if (now - lastProtectLog > 30_000) { lastProtectLog = now; runCatching { Store.of(this).log(R.string.log_acc_home) } }
-        } else if (BasicLogic.isDateTimePage(pkg, nodes)) {
+        } else if (basic && BasicLogic.isDateTimePage(pkg, nodes)) {
             // basic mode has no DISALLOW_CONFIG_DATE_TIME: the clock page is closed like the uninstall pages
             performGlobalAction(GLOBAL_ACTION_HOME); whyClosed(R.string.acc_closed_clock, R.string.bn_clock_t, R.string.bn_clock_b)
             val now = System.currentTimeMillis()
             if (now - lastProtectLog > 30_000) { lastProtectLog = now; runCatching { Store.of(this).log(R.string.log_acc_clock); Store.of(this).tamper("clock", R.string.ev_tamper_clock); Guard.running?.kick() } }
-        } else if (!CmdGate.selfOpen(Store.of(this).selfOpenUntil, System.currentTimeMillis()) && BasicLogic.selfProtect(pkg, nodes, labels, controlsOf(pkg), weak = !LocNag.active(this))) {
+        } else if (!CmdGate.selfOpen(Store.of(this).selfOpenUntil, System.currentTimeMillis()) && BasicLogic.selfProtect(pkg, nodes, labels, controlsOf(pkg), weak = !LocNag.active(this), locked = lockedPerms())) {
             performGlobalAction(GLOBAL_ACTION_HOME); whyClosed(R.string.acc_closed_protect, R.string.bn_protect_t, R.string.bn_protect_b)
             val now = System.currentTimeMillis()
             if (now - lastProtectLog > 30_000) {
@@ -328,15 +358,23 @@ class Acc : AccessibilityService() {
         @Volatile var prot: Set<String> = emptySet()
         private var basicAt = 0L
         private var basicVal = false
+        private var ownerVal = false
         private val lastBounce = HashMap<String, Long>()
 
         /** [Basic.enforcing] cached for 3 s (window events come in bursts). */
         fun basicOn(): Boolean {
             val ctx = running ?: return false
             val now = System.currentTimeMillis()
-            if (now - basicAt > 3_000) { basicAt = now; basicVal = Basic.enforcing(ctx) }
+            if (now - basicAt > 3_000) {
+                basicAt = now
+                basicVal = Basic.enforcing(ctx)
+                ownerVal = Policy.isOwner(ctx) && !Store.of(ctx).released
+            }
             return basicVal
         }
+
+        /** True in basic mode or Device Owner mode (when not released): Settings / permission pages are protected. */
+        fun protectOn(): Boolean { basicOn(); return basicVal || ownerVal }
 
         /** Send the child HOME and tell them why (once per 10 s per app). Used by the window events and the guard tick. */
         fun bounceApp(ctx: Context, pkg: String, code: String) {
