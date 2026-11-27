@@ -187,7 +187,7 @@ object RemoteSnap {
         val j = Job(fid, o, c.optBoolean("relay", false))
         if (CamCall.active || CamClip.active || !job.compareAndSet(null, j)) return "busy"   // the live camera holds the camera
         File(dir(g), "$fid.err").delete()
-        tell(g, o)
+        if (Store.of(g).rules.showWatching) tell(g, o)
         runCatching { Store.of(g).log(R.string.log_watch_snap) }
         main.postDelayed({ if (job.get() === j && !j.started) fallback(g, j) }, 4000)   // the window did not come up: photo from the service
         main.postDelayed({ if (job.get() === j) finish(g, j, "", "timeout") }, SnapLogic.TOTAL_MS + 3000)

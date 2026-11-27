@@ -125,7 +125,7 @@ function norm(e) {
   e.dailySaved = e.dailySaved && typeof e.dailySaved === "object" ? { min: +e.dailySaved.min || 0, byDay: Array.isArray(e.dailySaved.byDay) && e.dailySaved.byDay.length === 7 ? e.dailySaved.byDay : [] } : null;   // daily limit paused (0.9.54)
   if (e.dailyMin || e.dailyByDay.length) e.dailySaved = null;   // a limit set meanwhile (template, mode) wins over the paused one
   e.schedules = e.schedules || []; e.approved = e.approved || []; e.safeDns = e.safeDns || ""; e.safeDnsPauseUntil = +e.safeDnsPauseUntil || 0; e.noVpn = !!e.noVpn; e.noIncognito = !!e.noIncognito; e.webBlock = Array.isArray(e.webBlock) ? e.webBlock : []; e.webAllow = Array.isArray(e.webAllow) ? e.webAllow : []; e.frpIds = Array.isArray(e.frpIds) ? e.frpIds.map(String) : [];
-  e.trackMin = e.trackMin === undefined ? 5 : +e.trackMin; e.lockLocation = e.lockLocation !== false; e.noAirplane = e.noAirplane !== false; e.showWatching = e.showWatching !== false; e.autoUpdate = e.autoUpdate !== false; e.tsKeep = !!e.tsKeep; e.blockNew = !!e.blockNew; e.monitor = !!e.monitor; e.hideApp = e.hideApp !== false;
+  e.trackMin = e.trackMin === undefined ? 5 : +e.trackMin; e.lockLocation = e.lockLocation !== false; e.noAirplane = e.noAirplane !== false; e.showWatching = e.showWatching === true; e.autoUpdate = e.autoUpdate !== false; e.tsKeep = !!e.tsKeep; e.blockNew = !!e.blockNew; e.monitor = !!e.monitor; e.hideApp = e.hideApp !== false;
   e.kidClean = !!e.kidClean;
   { const w = e.watch || {}, n = w.notif || {};   // 0.9.29 what the parent may read (docs/protocol.md "Monitoring")
     e.watch = { notif: { on: !!n.on, kw: !!n.kw, apps: ["only", "except"].includes(n.apps) ? n.apps : "all", list: Array.isArray(n.list) ? n.list.map(String).slice(0, 200) : [] },
@@ -531,7 +531,7 @@ async function boot() {
   if (pc && anyOk()) return addScreen.far(pc);   // the kid's QR opened by a camera: an https page can't reach the LAN, so the relay
   if (auth.get()) await auth.syncPull(true);
   const relayKids = kids.filter(k => k.via === "relay");
-  if (relayKids.length === 1) return open(relayKids[0]);
+  if (relayKids.length >= 1) return open(lastKidOf(relayKids));
   listScreen(relayKids);
 }
 
@@ -603,6 +603,8 @@ async function kidBrief(list) {
 function appBoot() {
   save(kids, true);   // tell the app the current list once on load
   const list = homeKids(); reScreen = appBoot;
+  if (appOpenKid()) return;
+  if (list.length >= 1) return open(appBoot.last(list));
   $("#app").innerHTML = head("KidGuard") + auth.card() + (list.length ? list.map((k, i) =>
     kidRow(k, i)).join("")
     : `<div class="card empty"><span class="e">${ic("inbox")}</span><p>${t("app.none")}</p></div>`) +
@@ -612,15 +614,19 @@ function appBoot() {
   kidBrief(list);
   $("#addKid").onclick = addScreen;
   if ($("#ovGo")) $("#ovGo").onclick = () => overview(list, appBoot);
-  appOpenKid();
 }
+appBoot.last = list => {
+  let key = ""; try { key = localStorage.getItem("kg.lastKid") || ""; } catch {}
+  return (key && list.find(k => (k.via || "") + ":" + (k.id || "") === key)) || list[0];
+};
 // parent app: a notification tap names one kid (KGApp.takeOpen() -> {target, id}, given once); the app also calls this on a running page
 function appOpenKid() {
   let o = null;
   try { o = JSON.parse(window.KGApp && KGApp.takeOpen ? KGApp.takeOpen() || "null" : "null"); } catch {}
   const k = o && kids.find(x => x.target === o.target && x.id === o.id);
-  if (k && k !== cur) open(k);
-  if (!k && KGApp.takeSettings && KGApp.takeSettings() === "true") goAppSettings();
+  if (k && k !== cur) { open(k); return true; }
+  if (!k && KGApp.takeSettings && KGApp.takeSettings() === "true") { goAppSettings(); return true; }
+  return false;
 }
 window.kgAppOpen = appOpenKid;
 // Pair from anywhere (docs/protocol.md "Pair over relay"): the code on the kid's screen also works through the relay, no shared Wi-Fi.

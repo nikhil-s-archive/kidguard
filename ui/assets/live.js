@@ -5,13 +5,12 @@
 function pinGate(a) {
   screenStop();
   a.className = ""; a.innerHTML = `<div class="solo">${localBar()}
-  <div class="head">${!LOCAL && (APP || kids.length > 1 || cur.via === "relay") ? `<button type="button" id="back" class="back" aria-label="${esc(t("list"))}">${ic("chevron-left")}</button>` : ""}${kidAv(cur)}<div><div class="t1">${esc(cur.name)}</div></div></div>
+  <div class="head">${kidAv(cur)}<div><div class="t1">${esc(cur.name)}</div></div></div>
   <div class="card"><h2>${ic("key-round")} ${t("pinGate.h")}</h2><p>${t("pinGate.p")}</p>
     <div class="pairf"><input id="f-gp1" type="password" inputmode="numeric" maxlength="8" autocomplete="new-password" placeholder="${esc(t("pair.pin1"))}" aria-label="${esc(t("pair.pin1"))}">
     <input id="f-gp2" type="password" inputmode="numeric" maxlength="8" autocomplete="new-password" placeholder="${esc(t("pair.pin2"))}" aria-label="${esc(t("pair.pin2"))}">
     <button class="pri" id="gpGo">${ic("key-round")} ${t("pinGate.go")}</button></div><p class="err" id="gpE" role="alert"></p></div></div>`;
   localWire();
-  if ($("#back")) $("#back").onclick = () => { goList(); navDown(0); };
   const go = $("#gpGo"), err = $("#gpE");
   go.onclick = async () => {
     const x = $("#f-gp1").value, y = $("#f-gp2").value;

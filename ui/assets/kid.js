@@ -4,7 +4,7 @@ let noState = false;   // relay answered {state: null}: the child never synced
 let gen = 0;   // bumped by every screen change; async work started for an older screen drops its result
 // relay: the phone sends the state only when it changed, so its sync time (seen) says "online", not state.t
 function lastSeen() { return cur && cur.via !== "lan" && seenAt ? Math.max(seenAt, st ? st.t : 0) : (st ? st.t : 0); }
-async function open(k) { const g = ++gen; subId = null; selId = null; if (askDone) askDone(false, true); leaveSave(); pairLocal = null; wantReset(); screenStop(); earStop(); cur = k; cachedAt = 0; viewDay = null; histDays = null; st = null; edit = null; trk = []; trkLoaded = 0; mv = null; sel.on = false; sel.set.clear(); sel.q = ""; sel.n = 40; spaceN = 15; hideDraft = null; noState = false; lastSig = ""; saveFail(false); render(); if ($("#back")) navTo(1); clearInterval(timer); pollBusy = 0; await refresh(); if (g !== gen) return; relayMigrate(k); clearInterval(timer); timer = setInterval(refresh, k.via === "lan" ? 4000 : 8000); }
+async function open(k) { const g = ++gen; subId = null; selId = null; if (askDone) askDone(false, true); leaveSave(); pairLocal = null; wantReset(); screenStop(); earStop(); cur = k; try { localStorage.setItem("kg.lastKid", (k.via || "") + ":" + (k.id || "")); } catch {} cachedAt = 0; viewDay = null; histDays = null; st = null; edit = null; trk = []; trkLoaded = 0; mv = null; sel.on = false; sel.set.clear(); sel.q = ""; sel.n = 40; spaceN = 15; hideDraft = null; noState = false; lastSig = ""; saveFail(false); render(); clearInterval(timer); pollBusy = 0; await refresh(); if (g !== gen) return; relayMigrate(k); clearInterval(timer); timer = setInterval(refresh, k.via === "lan" ? 4000 : 8000); }
 
 // One poll at a time (a hung mobile link must not stack them; one stuck > 30 s no longer blocks). Nobody touched the
 // page for 2 min -> every 30 s instead of 4 / 8 s (a forgotten tab kept the phone syncing its state every 30 s); a touch
@@ -267,7 +267,7 @@ document.addEventListener("change", confirmGate, true);
 // ui = element ids (a card id disables the whole card) shown disabled with the note + "Update the kid's phone".
 // New relay command or rule key ⇒ add it here: scripts/check-need.mjs fails otherwise (CI + build.sh).
 const NEED = [
-  { v: "0.9.78", cmd: ["installApk"], rule: ["hideApp"], ui: ["f-ha"] },
+  { v: "0.9.78", cmd: ["installApk"], rule: ["hideApp"], ui: ["f-ha", "f-ha2"] },
   { v: "0.9.71", ui: ["camGo", "camNow"] },
   { v: "0.9.54", rule: ["dailySaved", "byDay"] },
   { v: "0.9.29",

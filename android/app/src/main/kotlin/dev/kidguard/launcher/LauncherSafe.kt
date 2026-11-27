@@ -37,13 +37,16 @@ object LauncherSafe {
     fun syncAppIcon(ctx: Context, r: Rules = Store.of(ctx).rules) {
         if (Flavor.HOME) return
         val s = Store.of(ctx)
-        val setupDone = s.everPaired && (Policy.isOwner(ctx) || (Basic.adminActive(ctx) && Acc.isOn(ctx)))
-        val want = if (!s.released && setupDone && r.hideApp) PackageManager.COMPONENT_ENABLED_STATE_DISABLED else PackageManager.COMPONENT_ENABLED_STATE_ENABLED
-        val cn = ComponentName(ctx, "dev.kidguard.LauncherIcon")
+        val setupDone = s.everPaired && (Policy.isOwner(ctx) || Basic.adminActive(ctx) || Acc.isOn(ctx))
+        val hide = !s.released && setupDone && r.hideApp
+        val want = if (hide) PackageManager.COMPONENT_ENABLED_STATE_DISABLED else PackageManager.COMPONENT_ENABLED_STATE_ENABLED
         val pm = ctx.packageManager
-        if (pm.getComponentEnabledSetting(cn) != want) {
-            runCatching { pm.setComponentEnabledSetting(cn, want, PackageManager.DONT_KILL_APP) }
-                .onFailure { Log.w(TAG, "syncAppIcon", it) }
+        for (name in listOf("dev.kidguard.LauncherIcon", "dev.kidguard.HomeEntry")) {
+            val cn = ComponentName(ctx, name)
+            if (pm.getComponentEnabledSetting(cn) != want) {
+                runCatching { pm.setComponentEnabledSetting(cn, want, PackageManager.DONT_KILL_APP) }
+                    .onFailure { Log.w(TAG, "syncAppIcon $name", it) }
+            }
         }
     }
 

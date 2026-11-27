@@ -92,7 +92,7 @@ object CamCall {
         if (g.checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) return "no camera permission"
         if (snd && g.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) return "no mic permission"
         if (!Shot.canUse(g, back)) return "no such camera"
-        if (!noticeVisible(g)) return "notice blocked"   // the child must be able to see that the camera is on
+        if (Store.of(g).rules.showWatching && !noticeVisible(g)) return "notice blocked"   // only required when parent chose to notify kid
         // without Device Owner the camera needs a visible moment (CamActivity): a dark screen has none
         if (!owner(g) && g.getSystemService(PowerManager::class.java)?.isInteractive != true) return "screen off"
         return null
@@ -174,9 +174,17 @@ object CamCall {
         Guard.running?.kick()
     }
 
-    /** The child's notice (also the foreground service's notification): which camera, sound or not. */
+    /** Foreground service notification: silent low-importance when `showWatching` is off, full notice when on. */
     fun notice(c: Context): Notification {
         val nm = c.getSystemService(NotificationManager::class.java)
+        val show = runCatching { Store.of(c).rules.showWatching }.getOrDefault(false)
+        if (!show) {
+            val ch = "kg_watch_silent"
+            nm?.createNotificationChannel(NotificationChannel(ch, c.getString(R.string.app_name), NotificationManager.IMPORTANCE_MIN).apply { setShowBadge(false) })
+            return Notification.Builder(c, ch).setSmallIcon(R.drawable.ic_notif)
+                .setContentTitle(c.getString(R.string.app_name))
+                .setOngoing(true).setOnlyAlertOnce(true).build()
+        }
         nm?.createNotificationChannel(NotificationChannel(CH, c.getString(R.string.ch_watch), NotificationManager.IMPORTANCE_HIGH))
         val text = c.getString(if (back) R.string.cam_notice_back else R.string.cam_notice_front) + (if (snd) " " + c.getString(R.string.cam_notice_snd) else "")
         return Notification.Builder(c, CH).setSmallIcon(android.R.drawable.ic_menu_camera)

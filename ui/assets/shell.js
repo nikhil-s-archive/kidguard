@@ -135,11 +135,10 @@ const bnavHtml = () => `<nav class="bnav" aria-label="${esc(t("nav.main"))}">${B
   return `<button type="button" data-tab="${id}" class="${on ? "on" : ""}" ${on ? 'aria-current="page"' : ""}><b>${ic(i)}${id === "home" && reqN() ? `<span class="n">${reqN()}</span>` : ""}</b><span>${t(id === "more" ? "nav.more" : "tab." + id)}</span></button>`; }).join("")}</nav>`;
 function headHtml() {
   const L = kidList(), sw = L.length > 1;
-  const back = !LOCAL && (APP || onLan() || kids.length > 1 || cur.via === "relay");
   const title = sw
     ? `<button type="button" id="kidSwitch" class="kswitch" aria-haspopup="dialog" aria-label="${esc(cur.name)}"><span class="t1">${esc(cur.name)}</span>${ic("chevron-down")}</button>`
     : `<div class="t1">${esc(cur.name)}</div>`;
-  return `<div class="head">${back ? `<button type="button" id="back" class="back${L.length > 1 || APP || onLan() ? " mOnly" : ""}" aria-label="${esc(t("list"))}" title="${esc(t("list"))}">${ic("chevron-left")}</button>` : ""}${kidAv(cur)}
+  return `<div class="head">${kidAv(cur)}
     <div>${title}<div class="st" id="hst"></div></div><span class="savechip" id="saveChip" role="status"></span>
     ${sw && !LOCAL ? `<button type="button" id="headOv" class="rb mOnly" aria-label="${esc(t("nav.family"))}" title="${esc(t("nav.family"))}">${ic("users")}</button>` : ""}
     <button type="button" id="qsHeadBtn" class="rb" aria-label="${esc(t("qs.h"))}" title="${esc(t("qs.h"))} ( / )">${ic("search")}</button></div>`;
@@ -187,7 +186,6 @@ function render(tabClick) {
   if ($("#kidSwitch")) $("#kidSwitch").onclick = headHtml.switch;
   wireSide(a);
   if ($("#goLive")) $("#goLive").onclick = () => { tab = "home"; open(cur); dayOff(); };
-  if ($("#back")) $("#back").onclick = () => { goList(); navDown(0); };
   localWire();
   if ($("#goPin")) $("#goPin").onclick = () => { goTab("set"); subOpen("s-sec"); const f = $("#f-pin"); if (f) { f.scrollIntoView({ block: "center" }); f.focus(); } };
   const body = $("#body");

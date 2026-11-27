@@ -199,7 +199,7 @@ data class Rules(
     val devPause: Set<String> = DevPauseLogic.DEFAULT,   // apps that refuse USB / wireless debugging: Developer options off while used (DevOpts.pause)   // bank apps: our accessibility service is off while they are used (AccPause)
     val tcpPause: Set<String> = DevPauseLogic.TCP_DEFAULT,   // apps that refuse adb over the network (service.adb.tcp.port set): `adb usb` while used; the port comes back only with Wi-Fi (DevOpts.pause)
     val trackMin: Int = 5,                   // location history every N minutes: 0 (off), 1, 5, 10, 15, 30, 60 (default 5 since 0.9.14, was 10)
-    val showWatching: Boolean = true,        // child sees "parent is watching / controlling" while the screen is viewed
+    val showWatching: Boolean = false,       // child sees "parent is watching / controlling" while the screen / camera is viewed
     val autoUpdate: Boolean = true,          // daily check of GitHub releases; owner installs silently, basic asks the child
     val chores: List<Chore> = emptyList(),   // max 20
     val zones: List<Zone> = emptyList(),     // max 10
@@ -377,7 +377,7 @@ data class Rules(
                 approved = o.optJSONArray("approved").strings(),
                 lockLocation = o.optBoolean("lockLocation", true),
                 noAirplane = o.optBoolean("noAirplane", true),
-                showWatching = o.optBoolean("showWatching", true),
+                showWatching = o.optBoolean("showWatching", false),
                 hideApp = o.optBoolean("hideApp", true),
                 autoUpdate = o.optBoolean("autoUpdate", true),
                 noVpn = o.optBoolean("noVpn", false),

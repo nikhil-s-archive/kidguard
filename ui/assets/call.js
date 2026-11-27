@@ -209,9 +209,9 @@ const CAM = (() => {   // one global: CAM.start(o), CAM.on() (call / listen refu
     if (!RTC.canListen()) return toast("warn|" + t("cam.noRtc"));
     const old = needOf("ui", "camGo"); if (old) return needAsk(old);
     if (!(await onlineNow.gate("cam"))) return;
-    if (!(await ask(t(o.snd ? "cam.askSnd" : "cam.ask"), t("cam.on")))) return;
+    if (edit && edit.showWatching && !(await ask(t(o.snd ? "cam.askSnd" : "cam.ask"), t("cam.on")))) return;
     if (camRtc || cur !== k) return;
-    const me = camRtc = { k, via: vcOk.via(k), id: vcId(), c: null, st: "prep", t0: 0, back: o.cam === "back", snd: !!o.snd, mute: false, flip: false };
+    const me = camRtc = { k, via: vcOk.via(k), id: vcId(), c: null, st: "prep", t0: 0, back: o.cam === "back", snd: !!o.snd, mute: false, flip: false, fit: false, hud: true };
     camShow(me);
     try {
       const j = await vcApi(me, "/call?ice=1");
@@ -267,6 +267,7 @@ const CAM = (() => {   // one global: CAM.start(o), CAM.on() (call / listen refu
       : tc("cam.e.", why.replace(/ /g, "_"), t("cam.e.failed"));
     el.querySelector(".vcbar").innerHTML = `<button type="button" class="vcb end" id="camClose" aria-label="${esc(t("cam.close"))}">${ic("x")}</button>`;
     el.querySelector("#camClose").onclick = () => el.remove();
+    el.classList.remove("hud-hide");
     el.classList.add("over");
     if (ok) setTimeout(() => { if ($("#camUi") === el && !camRtc) el.remove(); }, 1500);   // an error stays until closed: it says what to do
   }
@@ -274,13 +275,15 @@ const CAM = (() => {   // one global: CAM.start(o), CAM.on() (call / listen refu
   function camShow(me) {
     $("#camUi") && $("#camUi").remove();
     const el = document.createElement("div");
-    el.id = "camUi"; el.className = "vc"; el.setAttribute("role", "dialog"); el.setAttribute("aria-modal", "true"); el.setAttribute("aria-label", t("cam.h"));
+    el.id = "camUi"; el.className = "vc cam-fs"; el.setAttribute("role", "dialog"); el.setAttribute("aria-modal", "true"); el.setAttribute("aria-label", t("cam.h"));
     el.innerHTML = `<div class="vcwait" id="camWait" aria-hidden="true">${ic("camera")}</div><video id="camVideo" autoplay playsinline></video>
-      <div class="vctop"><b>${esc(me.k.name || "")}</b><span id="camSt" role="status"></span></div>
-      <div class="vcbar">${vrec.can() ? `<button type="button" id="camRec" class="vcb" aria-pressed="false" aria-label="${esc(t("rec.start"))}">${ic("circle")}</button>` : ""}<button type="button" id="camFlip" class="vcb" aria-label="${esc(t("cam.flip"))}">${ic("refresh-cw")}</button><button type="button" id="camEnd" class="vcb end" aria-label="${esc(t("cam.stop"))}">${ic("square")}</button>${me.snd ? `<button type="button" id="camSnd" class="vcb" aria-pressed="false"></button>` : ""}</div>`;
+      <div class="vc-top-glass"><span class="vc-dot" aria-hidden="true"></span><b>${esc(me.k.name || "")}</b><span id="camSt" role="status"></span></div>
+      <div class="vcbar glass-dock">${vrec.can() ? `<button type="button" id="camRec" class="vcb" aria-pressed="false" aria-label="${esc(t("rec.start"))}">${ic("circle")}</button>` : ""}<button type="button" id="camFlip" class="vcb" aria-label="${esc(t("cam.flip"))}">${ic("refresh-cw")}</button><button type="button" id="camFit" class="vcb" aria-pressed="false" aria-label="Fill screen">${ic("external-link")}</button>${me.snd ? `<button type="button" id="camSnd" class="vcb" aria-pressed="false"></button>` : ""}<button type="button" id="camEnd" class="vcb end" aria-label="${esc(t("cam.stop"))}">${ic("square")}</button></div>`;
     document.body.appendChild(el);
     const v = el.querySelector("#camVideo");
     v.addEventListener("playing", () => v.classList.add("live"));
+    v.onclick = () => { if (me.st === "on") { me.hud = !me.hud; el.classList.toggle("hud-hide", !me.hud); } };
+    el.querySelector("#camFit").onclick = () => { me.fit = !me.fit; v.classList.toggle("fill", me.fit); el.querySelector("#camFit").setAttribute("aria-pressed", String(me.fit)); };
     el.querySelector("#camEnd").onclick = () => camEnd(me, "hangup", true);
     el.querySelector("#camFlip").onclick = () => { if (camRtc !== me || me.st !== "on" || me.flip || !me.c) return; me.flip = true; me.c.send({ t: "flip" }); camPaint(); setTimeout(() => { if (me.flip) { me.flip = false; camPaint(); } }, 8000); };
     const sb = el.querySelector("#camSnd"); if (sb) sb.onclick = () => { me.mute = !me.mute; v.muted = me.mute; camPaint(); };

@@ -326,7 +326,9 @@ function setTab(b) {
   const dangerP = secP("s-danger", "octagon-x", t("set.danger"), t("sd.danger"), null, `${isBasic() ? selfOpenHtml() : ""}<h2 style="margin-top:${isBasic() ? 18 : 0}px">${ic("unlink")} ${t("paired.unpair")}</h2><p class="mute">${t("ask.unpairAll")}</p><button id="unpair" class="bad">${ic("unlink")} ${t("paired.unpair")}</button>
     <h2 style="margin-top:18px">${ic("octagon-x")} ${t("rel.h")}</h2><p class="mute">${t("rel.p")}</p>
     <button id="release" class="bad">${ic("octagon-x")} ${t("rel.btn")}</button>`);
-  const nameP = { id: "s-name", icn: "user", title: t("set.name"), chip: null, body: `<div class="row"><input id="f-name" class="sp" aria-label="${esc(t("set.name"))}" value="${esc(cur.name)}"><button id="saveName">${ic("save")} ${t("save")}</button></div>` };
+  const nameP = { id: "s-name", icn: "user", title: t("set.name"), chip: null, body: `<div class="row"><input id="f-name" class="sp" aria-label="${esc(t("set.name"))}" value="${esc(cur.name)}"><button id="saveName">${ic("save")} ${t("save")}</button></div>
+    <label class="row" style="margin-top:12px"><input type="checkbox" id="f-ha2" ${edit.hideApp ? "checked" : ""}><span class="sp">${ic("eye-off")} ${t("anti.hideApp")}</span></label>
+    <p class="mute">${ic("info")} ${t("anti.hideAppTip")}</p>` };
   const keepP = APP ? { id: "s-keep", icn: "history", title: t("keep.h"), chip: null, body: `<select id="f-days" aria-label="${esc(t("keep.h"))}">${["0", "30", "90", "365"].map(v => `<option value="${v}" ${String(kgCall("getHistoryDays") || "0") === v ? "selected" : ""}>${+v ? t("days", +v) : t("noLimitC")}</option>`).join("")}</select>
     <p class="mute">${t("keep.p")}</p>` } : null;
   const redoP = { id: "s-redo", icn: "sparkles", title: t("wz.redo"), chip: null, body: `<p class="mute">${t("wz.redoP")}</p><button type="button" id="wizRedo">${ic("refresh-cw")} ${t("wz.redoGo")}</button>` };
@@ -367,6 +369,7 @@ function setTab(b) {
     st.devices = st.devices.filter(o => o !== d); lastSig = ""; render();
   });
   sysDraw();
+  if ($("#f-ha2")) $("#f-ha2").onchange = e => { edit.hideApp = e.target.checked; changed(); };
   if (APP) $("#f-days").onchange = e => kgCall("setHistoryDays", e.target.value);
   $("#saveName").onclick = () => { cur.name = $("#f-name").value || t("kid"); save(kids); render(); };
   // saved right away (not the 0.5 s debounce) so the button can show sending -> saved / failed

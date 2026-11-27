@@ -3,7 +3,7 @@
 // Runs independently of the 4 s state poll (refresh() never redraws the screen tab).
 // on: the kid the parent pressed "Start viewing" for (owner 2026-11-20: opening the tab must not start it; leaving the tab ends it)
 // k: the kid frames are being asked from now (screenStop tells that phone to stop at once)
-const scr = { rec: null, gen: 0, url: null, seq: 0, frames: [], lat: 0, liveT: null, view: false, err: "", msg: "", off: false, blob: null, idle: false, on: null, k: null };   // off: the last frame answer was "screen off"
+const scr = { rec: null, gen: 0, url: null, seq: 0, frames: [], lat: 0, liveT: null, view: true, fs: false, hud: true, err: "", msg: "", off: false, blob: null, idle: false, on: null, k: null };   // off: the last frame answer was "screen off"
 // Nobody touched the page for 5 min: stop asking for frames (the kid's phone keeps capturing and uploading as long as we ask,
 // and its "a parent is watching" notice stays up). One button brings the picture back.
 const SCR_IDLE = 300000;
@@ -18,6 +18,7 @@ function screenStat() {
   const now = performance.now(); scr.frames = scr.frames.filter(t => now - t < 5000);
   const fps = scr.frames.length > 1 ? (scr.frames.length - 1) / ((scr.frames[scr.frames.length - 1] - scr.frames[0]) / 1000) : 0;
   el.textContent = scr.frames.length ? t("scr.watching") + " · " + (st => scr.lat < 0 ? st.split(" · ")[0] : st)(t("scr.stat", fps.toLocaleString(lang, { maximumFractionDigits: 1, minimumFractionDigits: 1 }), Math.round(scr.lat))) : "";
+  const fsEl = $("#s-stat-fs"); if (fsEl) fsEl.textContent = el.textContent || t("connecting");
 }
 function showFrame(blob, lat) {
   const old = scr.url; scr.url = URL.createObjectURL(blob);
@@ -33,12 +34,11 @@ scr.recDraw = () => {   // from the <img> (already decoded for the screen), not 
   img.decode().then(() => { if (scr.rec === r && img.naturalWidth) r.cx.drawImage(img, 0, 0, r.cv.width, r.cv.height); }).catch(() => {});
 }
 scr.recBtn = () => {
-  const b = $("#s-rec"); if (!b) return;
-  b.hidden = !vrec.can(true);
-  b.disabled = !scr.rec && !(scr.blob && scr.on === cur && !scr.idle);
-  b.setAttribute("aria-pressed", String(!!scr.rec));
+  const b = $("#s-rec"), fb = $("#s-rec-fs");
+  const dis = !scr.rec && !(scr.blob && scr.on === cur && !scr.idle);
   const h = `${ic(scr.rec ? "square" : "circle")} ${scr.rec ? t("rec.on", vrec.mm(Date.now() - scr.rec.t0)) : t("rec.start")}`;
-  if (b.innerHTML !== h) b.innerHTML = h;
+  if (b) { b.hidden = !vrec.can(true); b.disabled = dis; b.setAttribute("aria-pressed", String(!!scr.rec)); if (b.innerHTML !== h) b.innerHTML = h; }
+  if (fb) { fb.hidden = !vrec.can(true); fb.disabled = dis; fb.setAttribute("aria-pressed", String(!!scr.rec)); fb.classList.toggle("bad", !!scr.rec); fb.innerHTML = ic(scr.rec ? "square" : "circle"); }
 }
 scr.recToggle = async () => {
   if (scr.rec) return scr.rec.stop();
@@ -163,34 +163,54 @@ function screenCtl() {
   const so = $("#s-off"); if (!so) return;
   const on = scr.on === cur;
   $("#s-start").hidden = on; $("#s-live").hidden = !on;
+  const wr = $("#s-wrap"); if (wr) { wr.classList.toggle("fs", on && scr.fs); wr.classList.toggle("hud-hide", on && scr.fs && !scr.hud && scr.view); }
   const off = screenOff(), lock = off || scr.view || !on;
   so.hidden = !off; $("#s-box").classList.toggle("off", off);
   const si = $("#s-idle"); if (si) si.hidden = !scr.idle || off;
   const sv = $("#s-save"); if (sv) sv.disabled = !scr.blob;
+  const svf = $("#s-save-fs"); if (svf) svf.disabled = !scr.blob;
+  const fv = $("#s-fs-view"); if (fv) { fv.classList.toggle("on", scr.view); fv.setAttribute("aria-pressed", String(scr.view)); fv.innerHTML = `${ic(scr.view ? "eye" : "pointer")} ${t("scr.view")}`; }
+  const fnav = $("#s-fs-nav"); if (fnav) fnav.hidden = scr.view || off;
+  const fw = $("#s-fs-wake"); if (fw) fw.hidden = !off;
+  const vw = $("#s-view"); if (vw && vw.checked !== scr.view) vw.checked = scr.view;
   scr.recBtn();
   document.querySelectorAll("#s-btns button, #s-nav button").forEach(x => x.disabled = lock);
   $("#f-stxt").disabled = lock; $("#s-send").disabled = lock || !$("#f-stxt").value;
   if (off && on) actPaint();
 }
-// Start: a confirm that says the kid sees a notice (Android 8-10 always: the system requires it); Stop: back to the Start card
+// Start: auto-toggle View Only + enter Full Screen; only prompt when showWatching is explicitly on
 scr.go = async () => {
   if (!cur) return;
   if (!(await onlineNow.gate("scr"))) return;
-  const r = (edit || (st && st.rules) || {}), quiet = r.showWatching === false;
-  if (!(await ask(t(quiet ? "scr.askQ" : "scr.ask"), t("scr.start")))) return;
-  scr.on = cur; scr.idle = false; actAt = Date.now(); screenCtl(); screenStart();
+  const r = (edit || (st && st.rules) || {}), notify = r.showWatching === true;
+  if (notify && !(await ask(t("scr.ask"), t("scr.start")))) return;
+  scr.on = cur; scr.idle = false; scr.view = true; scr.fs = true; scr.hud = true; actAt = Date.now(); screenCtl(); screenStart();
 };
-scr.end = () => { scr.on = null; screenStop(); const img = $("#s-img"); if (img) img.removeAttribute("src"); screenMsg(""); screenStat(); screenCtl(); };
+scr.end = () => { scr.on = null; scr.fs = false; scr.hud = true; screenStop(); const img = $("#s-img"); if (img) img.removeAttribute("src"); screenMsg(""); screenStat(); screenCtl(); };
 
 function screenTab(b) {
   b.innerHTML = `<div class="card"><div class="row"><h2 class="sp" style="margin:0">${ic("smartphone")} ${t("scr.h")}</h2>
 </div>
-    <div id="s-start" style="margin-top:10px"><p>${ic("eye")} ${t("scr.startP")}</p><p class="mute">${ic("bell")} ${t("scr.startN")}</p><button type="button" class="pri" id="s-go">${ic("play")} ${t("scr.start")}</button></div>
+    <div id="s-start" style="margin-top:10px"><p>${ic("eye")} ${t("scr.startP")}</p>${edit && edit.showWatching ? `<p class="mute">${ic("bell")} ${t("scr.startN")}</p>` : ""}<button type="button" class="pri" id="s-go">${ic("play")} ${t("scr.start")}</button></div>
     <div id="s-live" hidden>
-    <div class="row" style="margin-top:10px;gap:8px"><label class="row sp"><input type="checkbox" id="s-view" ${scr.view ? "checked" : ""}> ${ic("eye")} ${t("scr.view")}</label><button type="button" id="s-stop" class="sm">${ic("square")} ${t("scr.stop")}</button></div>
+    <div class="row" style="margin-top:10px;gap:8px"><label class="row sp"><input type="checkbox" id="s-view" ${scr.view ? "checked" : ""}> ${ic("eye")} ${t("scr.view")}</label><button type="button" id="s-fs-open" class="sm">${ic("external-link")}</button><button type="button" id="s-stop" class="sm">${ic("square")} ${t("scr.stop")}</button></div>
     <div class="alert warn" id="s-off" hidden style="margin-top:10px">${ic("moon")}<span class="sp"><b>${t("so.h")}</b><br><span class="mute">${t("so.p")}</span></span><button type="button" id="wake" class="act pri"></button></div>
     <div class="alert info" id="s-idle" hidden style="margin-top:10px">${ic("pause")}<span class="sp">${t("scr.idle")}</span><button type="button" id="s-resume" class="pri">${ic("play")} ${t("scr.resume")}</button></div>
-    <div class="scr ${scr.view ? "view" : ""}" id="s-box" style="margin-top:10px"><img id="s-img" alt="${esc(t("scr.h"))}" draggable="false"><div class="scr-msg" id="s-msg"></div><svg class="gst" id="s-gst" aria-hidden="true"></svg></div>
+    <div id="s-wrap" class="scr-wrap">
+      <div class="fs-top">
+        <div class="fs-meta"><b>${esc(cur.name)}</b><span id="s-stat-fs" role="status">${t("connecting")}</span></div>
+        <button type="button" id="s-fs-view" aria-pressed="true">${ic("eye")} ${t("scr.view")}</button>
+        <button type="button" id="s-fs-min" class="ic-only" aria-label="${esc(t("close"))}" title="${esc(t("close"))}">${ic("chevron-down")}</button>
+      </div>
+      <div class="scr ${scr.view ? "view" : ""}" id="s-box" style="margin-top:10px"><img id="s-img" alt="${esc(t("scr.h"))}" draggable="false"><div class="scr-msg" id="s-msg"></div><svg class="gst" id="s-gst" aria-hidden="true"></svg></div>
+      <div class="fs-bar">
+        <span id="s-fs-nav" class="row" style="gap:6px"><button type="button" data-key="back" class="ic-only" aria-label="${esc(t("back"))}">${ic("arrow-left")}</button><button type="button" data-key="home" class="ic-only" aria-label="${esc(t("key.home"))}">${ic("circle")}</button><button type="button" data-key="recents" class="ic-only" aria-label="${esc(t("key.recents"))}">${ic("square")}</button></span>
+        <button type="button" id="s-fs-wake" hidden>${ic("sun")} ${t("wake.done").split(" ")[0]}</button>
+        <button type="button" id="s-rec-fs" class="ic-only" aria-pressed="false" hidden></button>
+        <button type="button" id="s-save-fs" class="ic-only" aria-label="${esc(t("scr.save"))}" disabled>${ic("download")}</button>
+        <button type="button" id="s-fs-stop" class="bad">${ic("square")} ${t("scr.stop")}</button>
+      </div>
+    </div>
     <div class="snav" id="s-nav" role="group" aria-label="${esc(t("key.nav"))}"><button data-key="back" aria-label="${esc(t("back"))}" title="${esc(t("back"))}">${ic("arrow-left")}</button><button data-key="home" aria-label="${esc(t("key.home"))}" title="${esc(t("key.home"))}">${ic("circle")}</button><button data-key="recents" aria-label="${esc(t("key.recents"))}" title="${esc(t("key.recents"))}">${ic("square")}</button></div>
     <div class="row" style="margin:4px 0;flex-wrap:wrap;gap:6px"><span class="mute sp" id="s-stat" style="flex-basis:100%"></span><button type="button" id="s-rec" class="sm" aria-pressed="false" disabled hidden></button><button type="button" id="s-save" class="sm" disabled>${ic("download")} ${t("scr.save")}</button></div>
     <div class="spad" id="s-btns">
@@ -207,11 +227,19 @@ function screenTab(b) {
   $("#f-sw").onchange = e => { if (!edit) return; edit.showWatching = e.target.checked; changed(); };
   const box = $("#s-box"), img = $("#s-img");
   $("#s-view").onchange = e => { scr.view = e.target.checked; box.classList.toggle("view", scr.view); screenCtl(); };
+  $("#s-fs-open").onclick = () => { scr.fs = true; scr.hud = true; screenCtl(); };
+  $("#s-fs-min").onclick = () => { scr.fs = false; scr.hud = true; screenCtl(); };
+  $("#s-fs-stop").onclick = scr.end;
+  $("#s-fs-view").onclick = () => { scr.view = !scr.view; scr.hud = true; box.classList.toggle("view", scr.view); screenCtl(); };
+  $("#s-rec-fs").onclick = scr.recToggle;
+  $("#s-save-fs").onclick = () => $("#s-save").click();
+  $("#s-fs-wake").onclick = () => $("#wake").click();
+  box.addEventListener("click", e => { if (scr.fs && scr.view && !e.target.closest("button")) { scr.hud = !scr.hud; screenCtl(); } });
   // quick buttons: work even when the picture lags (a tap on a 2-fps picture lands in the wrong place). Swipes stay away
   // from the screen edges, where Android opens the shade / back gesture instead.
   const SW = { up: [.5, .72, .5, .28], down: [.5, .28, .5, .72], left: [.82, .5, .18, .5], right: [.18, .5, .82, .5] };
   const flash = x => { x.classList.add("sent"); setTimeout(() => x.classList.remove("sent"), 450); };
-  document.querySelectorAll("#s-btns [data-key], #s-nav [data-key]").forEach(x => { x.onclick = () => { flash(x); sendInput({ type: "key", key: x.dataset.key }); }; });
+  document.querySelectorAll("#s-btns [data-key], #s-nav [data-key], #s-fs-nav [data-key]").forEach(x => { x.onclick = () => { flash(x); sendInput({ type: "key", key: x.dataset.key }); }; });
   // gesture preview: an arrow on the picture shows exactly what the phone will replay (start -> end, straight line),
   // white while dragging, amber while sending, green when the phone answered, red on failure / cancel
   const gst = $("#s-gst"); let gstT = 0;
