@@ -100,9 +100,12 @@ class AdminActivity : Activity() {
                 }
                 return true
             }
-            override fun shouldInterceptRequest(v: WebView, r: WebResourceRequest): WebResourceResponse? =
-                if (ours(r.url) || (r.url.scheme == "https" && r.url.host in TILE_HOSTS)) null
+            override fun shouldInterceptRequest(v: WebView, r: WebResourceRequest): WebResourceResponse? {
+                val h = r.url.host.orEmpty()
+                val mapOk = r.url.scheme == "https" && (h in TILE_HOSTS || h in setOf("maps.google.com", "www.google.com") || h.endsWith(".gstatic.com") || h.endsWith(".googleapis.com"))
+                return if (ours(r.url) || mapOk) null
                 else WebResourceResponse("text/plain", "utf-8", 403, "Forbidden", emptyMap(), "".byteInputStream())
+            }
         }
         setContentView(android.widget.FrameLayout(this).apply { addView(w); addView(wait) })
         android.util.Log.i("KG.perf", "admin create ${android.os.SystemClock.elapsedRealtime() - t0}ms")
