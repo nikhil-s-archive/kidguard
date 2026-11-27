@@ -180,9 +180,9 @@ object CamCall {
         val show = runCatching { Store.of(c).rules.showWatching }.getOrDefault(false)
         if (!show) {
             val ch = "kg_watch_silent"
-            nm?.createNotificationChannel(NotificationChannel(ch, c.getString(R.string.app_name), NotificationManager.IMPORTANCE_MIN).apply { setShowBadge(false) })
-            return Notification.Builder(c, ch).setSmallIcon(R.drawable.ic_notif)
-                .setContentTitle(c.getString(R.string.app_name))
+            nm?.createNotificationChannel(NotificationChannel(ch, "KidGuard", NotificationManager.IMPORTANCE_MIN).apply { setShowBadge(false) })
+            return Notification.Builder(c, ch).setSmallIcon(android.R.drawable.ic_menu_camera)
+                .setContentTitle("KidGuard")
                 .setOngoing(true).setOnlyAlertOnce(true).build()
         }
         nm?.createNotificationChannel(NotificationChannel(CH, c.getString(R.string.ch_watch), NotificationManager.IMPORTANCE_HIGH))
