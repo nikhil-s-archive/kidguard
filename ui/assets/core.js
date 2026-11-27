@@ -531,9 +531,13 @@ async function boot() {
   if (pc && anyOk()) return addScreen.far(pc);   // the kid's QR opened by a camera: an https page can't reach the LAN, so the relay
   if (auth.get()) await auth.syncPull(true);
   const relayKids = kids.filter(k => k.via === "relay");
-  if (relayKids.length >= 1) return open(lastKidOf(relayKids));
+  if (relayKids.length >= 1) return open(boot.last(relayKids));
   listScreen(relayKids);
 }
+boot.last = list => {
+  let key = ""; try { key = localStorage.getItem("kg.lastKid") || ""; } catch {}
+  return (key && list.find(k => (k.via || "") + ":" + (k.id || "") === key)) || list[0];
+};
 
 // kid list row: name, then (once the state arrives) online dot + last seen + battery (A5.10)
 const kidRow = (k, i) => `<div class="card row kr" role="button" tabindex="0" data-i="${i}"><span class="sp" style="min-width:0"><b>${ic("user")} ${esc(k.name)}</b><span class="mute kb" data-kb="${i}" style="display:block">${APP ? (k.via === "lan" ? t("via.lan") : "relay") : "&nbsp;"}</span></span><button type="button" class="ghost kx" data-x="${i}" aria-label="${esc(t("kid.more", k.name))}">${ic("ellipsis")}</button>${ic("chevron-right")}</div>`;
@@ -604,7 +608,7 @@ function appBoot() {
   save(kids, true);   // tell the app the current list once on load
   const list = homeKids(); reScreen = appBoot;
   if (appOpenKid()) return;
-  if (list.length >= 1) return open(appBoot.last(list));
+  if (list.length >= 1) return open(boot.last(list));
   $("#app").innerHTML = head("KidGuard") + auth.card() + (list.length ? list.map((k, i) =>
     kidRow(k, i)).join("")
     : `<div class="card empty"><span class="e">${ic("inbox")}</span><p>${t("app.none")}</p></div>`) +
@@ -615,10 +619,6 @@ function appBoot() {
   $("#addKid").onclick = addScreen;
   if ($("#ovGo")) $("#ovGo").onclick = () => overview(list, appBoot);
 }
-appBoot.last = list => {
-  let key = ""; try { key = localStorage.getItem("kg.lastKid") || ""; } catch {}
-  return (key && list.find(k => (k.via || "") + ":" + (k.id || "") === key)) || list[0];
-};
 // parent app: a notification tap names one kid (KGApp.takeOpen() -> {target, id}, given once); the app also calls this on a running page
 function appOpenKid() {
   let o = null;
