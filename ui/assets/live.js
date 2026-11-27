@@ -60,7 +60,7 @@ function netSheet() {
 document.addEventListener("click", e => { if (e.target.closest && e.target.closest("#pcNet")) netSheet(); });
 function updateLive() {
   paintSave(); if (tab === "screen") screenCtl();
-  const el = $("#live"), hs = $("#hst"); if (!el) return;
+  const el = $("#live"), hs = $("#hst"); if (!el || !cur) return;
   if (!st) { if (hs) hs.innerHTML = `${dot(lastErr ? "bad" : "")}<span>${lastErr ? esc(lastErr) : t("connecting")}</span>`; el.innerHTML = ""; return; }
   if (viewDay) { if (hs) { delete hs.dataset.h; hs.innerHTML = `${ic("clock")}<span>${t("hist.snap", hhmm(st.t))} · ${+st.battery}%</span>`; } el.innerHTML = ""; return; }
   const lan = cur.via === "lan", online = onlineNow();
