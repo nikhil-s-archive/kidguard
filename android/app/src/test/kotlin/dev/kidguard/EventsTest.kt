@@ -88,7 +88,7 @@ class EventsTest {
             Events.ruleDiff(a, a.copy(blocked = setOf("a", "b"), chores = listOf(Chore("c", "C", 10)), zones = listOf(Zone("z", "Z", 1.0, 1.0, 100)), pausedUntil = 5), TestTr.VI))
         assertEquals("Bố mẹ đổi luật: cài đặt khác", Events.ruleDiff(a, a.copy(noDebug = true), TestTr.VI))
         assertEquals("Bố mẹ đổi luật: thưởng +20 phút; lưu vị trí mỗi 30 phút; bỏ khoá vị trí; không báo con khi xem màn hình",
-            Events.ruleDiff(a, a.copy(bonusDay = "d", bonusMin = 20, trackMin = 30, lockLocation = false, showWatching = false), TestTr.VI))
+            Events.ruleDiff(a.copy(showWatching = true), a.copy(bonusDay = "d", bonusMin = 20, trackMin = 30, lockLocation = false, showWatching = false), TestTr.VI))
     }
 
     @Test fun ruleDiffCapped() {
